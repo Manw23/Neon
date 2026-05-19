@@ -51,7 +51,7 @@
         <button class="nav-btn" onclick="refresh()">⟳</button>
 
         <div class="search-container">
-            <input type="text" id="address" placeholder="Search or paste URL" onkeypress="if(event.key==='Enter') go()">
+            <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter') go()">
             <button class="clear-btn" onclick="clearAddress()">×</button>
         </div>
 
@@ -161,7 +161,7 @@
                 addressBar.value = url;
                 targetUrl = url;
             } else {
-                targetUrl = "https://duckduckgo.com/?q=" + encodeURIComponent(input);
+                targetUrl = "https://www.google.com/search?igu=1&q=" + encodeURIComponent(input);
             }
             frame.src = targetUrl;
             addToHistory(targetUrl);
