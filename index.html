@@ -597,7 +597,28 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const API_URL = "https://user:381726b2f384fffdd3f0af715f6688e9@50536b280dca-tunnel-iuznimg9.devinapps.com";
+        const API_URL = "";
+        function apiFetch(path, opts = {}) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open(opts.method || "GET", API_URL + path, true);
+                if (opts.headers) {
+                    for (const [k, v] of Object.entries(opts.headers)) {
+                        xhr.setRequestHeader(k, v);
+                    }
+                }
+                xhr.onload = function() {
+                    resolve({
+                        ok: xhr.status >= 200 && xhr.status < 300,
+                        status: xhr.status,
+                        json: () => Promise.resolve(JSON.parse(xhr.responseText)),
+                        text: () => Promise.resolve(xhr.responseText)
+                    });
+                };
+                xhr.onerror = function() { reject(new Error("Connection error")); };
+                xhr.send(opts.body || null);
+            });
+        }
         const addressBar = document.getElementById("address");
         const home = document.getElementById("home");
         const mainArea = document.getElementById("main");
@@ -1171,7 +1192,7 @@
             renderAuthArea();
             if (authToken) {
                 try {
-                    await fetch(API_URL + "/profile", {
+                    await apiFetch("/profile", {
                         method: "PUT",
                         headers: { "Authorization": "Bearer " + authToken, "Content-Type": "application/json" },
                         body: JSON.stringify({ profile_pic: url || "" })
@@ -1206,7 +1227,7 @@
             if (newPass !== confirm) { errEl.textContent = 'Passwords do not match'; return; }
             errEl.textContent = '';
             try {
-                const res = await fetch(API_URL + '/change-password', {
+                const res = await apiFetch('/change-password', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ current_password: current, new_password: newPass })
@@ -1231,7 +1252,7 @@
             if (!email || !pass) { errEl.textContent = "Fill in both fields"; return; }
             errEl.textContent = "";
             try {
-                const res = await fetch(API_URL + "/login", {
+                const res = await apiFetch("/login", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({email, password: pass})
@@ -1259,7 +1280,7 @@
             if (pass.length < 4) { errEl.textContent = "Password must be 4+ characters"; return; }
             errEl.textContent = "";
             try {
-                const res = await fetch(API_URL + "/register", {
+                const res = await apiFetch("/register", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
                     body: JSON.stringify({email, password: pass, display_name: name})
@@ -1290,7 +1311,7 @@
         async function loadFromCloud() {
             if (!authToken) return;
             try {
-                const res = await fetch(API_URL + "/profile", {
+                const res = await apiFetch("/profile", {
                     headers: {"Authorization": "Bearer " + authToken}
                 });
                 if (!res.ok) {
@@ -1323,7 +1344,7 @@
             if (!authToken) return;
             try {
                 const userBookmarks = bookmarks.filter(b => b.url !== defaultBookmark.url);
-                await fetch(API_URL + "/profile", {
+                await apiFetch("/profile", {
                     method: "PUT",
                     headers: {
                         "Authorization": "Bearer " + authToken,
