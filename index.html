@@ -176,7 +176,15 @@
             if (pos > 0) { pos--; frame.src = navHistory[pos]; addressBar.value = navHistory[pos]; }
             else if (pos === 0) { pos = -1; frame.style.display = "none"; home.style.display = "flex"; addressBar.value = ""; }
         }
-        function forward() { if (pos < navHistory.length - 1) { pos++; frame.src = navHistory[pos]; addressBar.value = navHistory[pos]; } }
+        function forward() {
+            if (pos < navHistory.length - 1) {
+                pos++;
+                home.style.display = "none";
+                frame.style.display = "block";
+                frame.src = navHistory[pos];
+                addressBar.value = navHistory[pos];
+            }
+        }
         function refresh() { if (frame.src) frame.src = frame.src; }
 
         function openRealTab() {
