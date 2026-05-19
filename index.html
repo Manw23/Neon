@@ -66,7 +66,7 @@
 
         /* Bookmarks Bar */
         .bookmarks {
-            background: #1a1a1a;
+            background: var(--titlebar-bg);
             padding: 6px 14px;
             display: flex;
             gap: 8px;
@@ -600,9 +600,13 @@
         }
 
         function refresh() {
-            if (frame.src && frame.style.display !== "none") {
+            if (frame.style.display !== "none") {
                 showLoading();
-                frame.src = frame.src;
+                try {
+                    frame.contentWindow.location.reload();
+                } catch (e) {
+                    frame.src = frame.src;
+                }
             }
         }
 
@@ -669,8 +673,12 @@
 
         // --- Customization ---
         function updateColors() {
-            document.documentElement.style.setProperty('--titlebar-bg', document.getElementById("titlebarColor").value);
-            document.documentElement.style.setProperty('--toolbar-bg', document.getElementById("toolbarColor").value);
+            const t = document.getElementById("titlebarColor").value;
+            const tb = document.getElementById("toolbarColor").value;
+            document.documentElement.style.setProperty('--titlebar-bg', t);
+            document.documentElement.style.setProperty('--toolbar-bg', tb);
+            localStorage.setItem('neon_titlebar', t);
+            localStorage.setItem('neon_toolbar', tb);
         }
 
         function uploadBackground(e) {
