@@ -456,6 +456,12 @@
             }
             navHistory.push(url);
             pos = navHistory.length - 1;
+            saveNavState();
+        }
+
+        function saveNavState() {
+            const url = (pos >= 0 && pos < navHistory.length) ? navHistory[pos] : '';
+            localStorage.setItem('neon_current_url', url);
         }
 
         // --- Bookmarks ---
@@ -580,11 +586,13 @@
                 showLoading();
                 frame.src = navHistory[pos];
                 addressBar.value = navHistory[pos];
+                saveNavState();
             } else if (pos === 0) {
                 pos = -1;
                 frame.style.display = "none";
                 home.style.display = "flex";
                 addressBar.value = "";
+                localStorage.removeItem('neon_current_url');
             }
         }
 
@@ -596,6 +604,7 @@
                 showLoading();
                 frame.src = navHistory[pos];
                 addressBar.value = navHistory[pos];
+                saveNavState();
             }
         }
 
@@ -617,6 +626,7 @@
             addressBar.value = "";
             document.getElementById("bigsearch").value = "";
             document.getElementById("bigsearch").focus();
+            localStorage.removeItem('neon_current_url');
         }
 
         // --- Loading Indicator ---
@@ -730,7 +740,18 @@
         function init() {
             loadSaved();
             renderBookmarks();
-            setTimeout(() => addressBar.focus(), 300);
+            const lastUrl = localStorage.getItem('neon_current_url');
+            if (lastUrl) {
+                home.style.display = "none";
+                frame.style.display = "block";
+                frame.src = lastUrl;
+                addressBar.value = lastUrl;
+                navHistory = [lastUrl];
+                pos = 0;
+                showLoading();
+            } else {
+                setTimeout(() => addressBar.focus(), 300);
+            }
         }
         init();
     </script>
