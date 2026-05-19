@@ -9,31 +9,376 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='neon' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%2300f0ff'/%3E%3Cstop offset='100%25' style='stop-color:%23a020f0'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='42' fill='none' stroke='url(%23neon)' stroke-width='8'/%3E%3Ccircle cx='50' cy='50' r='28' fill='none' stroke='%2300f0ff' stroke-width='4' opacity='0.6'/%3E%3Ctext x='50' y='62' font-size='38' font-family='Arial Black' fill='%2300f0ff' text-anchor='middle'%3EN%3C/text%3E%3C/svg%3E">
 
     <style>
-        :root { --titlebar-bg: #1a1a1a; --toolbar-bg: #1a1a1a; }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family: system-ui, -apple-system, sans-serif; background:#0f0f0f; color:#fff; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
-        .titlebar { background:var(--titlebar-bg); padding:8px 14px; display:flex; align-items:center; gap:10px; border-bottom:1px solid #333; }
-        .bookmarks { background:#1f1f1f; padding:10px 14px; display:flex; gap:10px; border-bottom:1px solid #333; overflow-x:auto; min-height:52px; }
-        .bookmark { display:flex; align-items:center; gap:8px; padding:8px 14px; background:#2a2a2a; border-radius:8px; cursor:pointer; font-size:14px; white-space:nowrap; }
-        .bookmark:hover { background:#3a3a3a; }
-        .toolbar { background:var(--toolbar-bg); padding:10px 14px; display:flex; gap:8px; align-items:center; border-bottom:1px solid #333; }
-        .nav-btn { background:#333; color:#fff; border:none; width:38px; height:38px; border-radius:8px; font-size:17px; cursor:pointer; }
-        .search-container { flex:1; display:flex; align-items:center; position:relative; }
-        #address { flex:1; padding:11px 18px; padding-right:42px; background:#111; border:2px solid #444; border-radius:50px; color:white; font-size:15px; }
-        .clear-btn { position:absolute; right:52px; background:#555; color:white; border:none; width:24px; height:24px; border-radius:50%; font-size:15px; cursor:pointer; }
-        .star-btn { background:#333; color:#ffcc00; border:none; width:38px; height:38px; border-radius:8px; font-size:20px; cursor:pointer; }
-        .star-btn:hover { background:#444; }
-        .go-btn { background:#00aaff; color:black; border:none; padding:11px 24px; border-radius:50px; font-weight:bold; cursor:pointer; }
-        .real-tab-btn { background:#ffaa00; color:black; border:none; padding:11px 20px; border-radius:8px; font-weight:bold; font-size:15px; cursor:pointer; }
-        .real-tab-btn:hover { background:#ffcc33; }
-        .main { flex:1; position:relative; background:#000; background-size:cover; background-position:center; }
-        iframe { width:100%; height:100%; border:none; background:white; }
-        .home { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(17,17,17,0.85); text-align:center; padding:40px; }
-        .home input { width:90%; max-width:620px; padding:16px 24px; font-size:18px; border-radius:50px; background:#222; border:2px solid #555; color:white; }
-        .customize-btn { margin-left:auto; background:#333; color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px; }
-        .panel { position:absolute; top:50px; right:15px; background:#1f1f1f; border:1px solid #444; border-radius:12px; padding:16px; width:260px; z-index:999; display:none; }
-        .panel button { margin-top:12px; width:100%; padding:10px; background:#00aaff; color:black; border:none; border-radius:8px; font-weight:bold; cursor:pointer; }
-        .panel .reset { background:#ff5555; color:white; }
+        :root {
+            --titlebar-bg: #1a1a1a;
+            --toolbar-bg: #1a1a1a;
+            --accent: #00aaff;
+            --accent-hover: #33bbff;
+            --danger: #ff5555;
+            --warning: #ffaa00;
+            --star: #ffcc00;
+            --border: #333;
+            --surface: #2a2a2a;
+            --surface-hover: #3a3a3a;
+            --bg-dark: #0f0f0f;
+            --bg-input: #111;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: #fff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Title Bar */
+        .titlebar {
+            background: var(--titlebar-bg);
+            padding: 6px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid var(--border);
+            user-select: none;
+        }
+        .titlebar strong {
+            background: linear-gradient(135deg, #00f0ff, #a020f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+        .customize-btn {
+            margin-left: auto;
+            background: var(--surface);
+            color: #ccc;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .customize-btn:hover { background: var(--surface-hover); color: #fff; }
+
+        /* Bookmarks Bar */
+        .bookmarks {
+            background: #1a1a1a;
+            padding: 6px 14px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            min-height: 40px;
+            align-items: center;
+            scrollbar-width: thin;
+            scrollbar-color: #444 transparent;
+        }
+        .bookmarks::-webkit-scrollbar { height: 4px; }
+        .bookmarks::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        .bookmark {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            background: var(--surface);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            white-space: nowrap;
+            transition: background 0.2s;
+            position: relative;
+        }
+        .bookmark:hover { background: var(--surface-hover); }
+        .bookmark img { width: 16px; height: 16px; border-radius: 2px; }
+        .bookmark .delete-bm {
+            display: none;
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            font-size: 10px;
+            cursor: pointer;
+            line-height: 16px;
+            text-align: center;
+            padding: 0;
+        }
+        .bookmark:hover .delete-bm { display: block; }
+
+        /* Toolbar */
+        .toolbar {
+            background: var(--toolbar-bg);
+            padding: 8px 14px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-btn {
+            background: var(--surface);
+            color: #ccc;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .nav-btn:hover { background: var(--surface-hover); color: #fff; }
+        .nav-btn:active { background: #4a4a4a; }
+
+        /* Search / Address Bar */
+        .search-container { flex: 1; display: flex; align-items: center; position: relative; }
+        #address {
+            flex: 1;
+            padding: 9px 16px;
+            padding-right: 36px;
+            background: var(--bg-input);
+            border: 2px solid #444;
+            border-radius: 50px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        #address:focus { border-color: var(--accent); }
+        #address::placeholder { color: #666; }
+        .clear-btn {
+            position: absolute;
+            right: 10px;
+            background: none;
+            color: #888;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            transition: color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .clear-btn:hover { color: #fff; }
+
+        .star-btn {
+            background: var(--surface);
+            color: var(--star);
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .star-btn:hover { background: var(--surface-hover); }
+
+        .go-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 9px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .go-btn:hover { background: var(--accent-hover); }
+
+        .real-tab-btn {
+            background: var(--warning);
+            color: #000;
+            border: none;
+            padding: 9px 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .real-tab-btn:hover { background: #ffcc33; }
+
+        /* Main Content Area */
+        .main {
+            flex: 1;
+            position: relative;
+            background: #000;
+            background-size: cover;
+            background-position: center;
+        }
+        iframe { width: 100%; height: 100%; border: none; background: white; }
+
+        /* Loading Bar */
+        .loading-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #00f0ff, #a020f0, #00f0ff);
+            background-size: 200% 100%;
+            animation: loading-slide 1s linear infinite;
+            z-index: 10;
+            display: none;
+            width: 100%;
+        }
+        @keyframes loading-slide {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Home Screen */
+        .home {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(17, 17, 17, 0.9);
+            text-align: center;
+            padding: 40px;
+            gap: 16px;
+        }
+        .home h1 {
+            font-size: 48px;
+            background: linear-gradient(135deg, #00f0ff, #a020f0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 6px;
+        }
+        .home p { color: var(--warning); font-size: 14px; }
+        .home input {
+            width: 90%;
+            max-width: 560px;
+            padding: 14px 22px;
+            font-size: 16px;
+            border-radius: 50px;
+            background: #1a1a1a;
+            border: 2px solid #444;
+            color: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .home input:focus { border-color: var(--accent); }
+        .home input::placeholder { color: #666; }
+        .home-shortcuts {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .shortcut-tile {
+            width: 80px;
+            height: 80px;
+            background: var(--surface);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.15s;
+            text-decoration: none;
+            color: #ccc;
+        }
+        .shortcut-tile:hover { background: var(--surface-hover); transform: scale(1.05); }
+        .shortcut-tile img { width: 28px; height: 28px; border-radius: 4px; }
+        .shortcut-tile span { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70px; }
+
+        /* Customize Panel */
+        .panel {
+            position: absolute;
+            top: 40px;
+            right: 15px;
+            background: #1f1f1f;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 16px;
+            width: 260px;
+            z-index: 999;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        .panel h4 { margin-bottom: 12px; color: var(--accent); }
+        .panel label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+        .panel input[type="color"] {
+            width: 100%;
+            height: 32px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            background: transparent;
+        }
+        .panel input[type="file"] {
+            width: 100%;
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 4px;
+        }
+        .panel button {
+            margin-top: 10px;
+            width: 100%;
+            padding: 9px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        .panel button:hover { background: var(--accent-hover); }
+        .panel .reset { background: var(--danger); color: white; }
+        .panel .reset:hover { background: #ff7777; }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface);
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            border: 1px solid var(--border);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .real-tab-btn span { display: none; }
+            .real-tab-btn { padding: 9px 10px; }
+            .go-btn { padding: 9px 14px; }
+            .toolbar { padding: 6px 8px; gap: 4px; }
+        }
     </style>
 </head>
 <body>
@@ -46,40 +391,45 @@
     <div class="bookmarks" id="bookmarks"></div>
 
     <div class="toolbar">
-        <button class="nav-btn" onclick="back()">←</button>
-        <button class="nav-btn" onclick="forward()">→</button>
-        <button class="nav-btn" onclick="refresh()">⟳</button>
+        <button class="nav-btn" onclick="back()" title="Back (Alt+←)">←</button>
+        <button class="nav-btn" onclick="forward()" title="Forward (Alt+→)">→</button>
+        <button class="nav-btn" onclick="refresh()" title="Refresh">⟳</button>
+        <button class="nav-btn" onclick="goHome()" title="Home">⌂</button>
 
         <div class="search-container">
             <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter') go()">
-            <button class="clear-btn" onclick="clearAddress()">×</button>
+            <button class="clear-btn" onclick="clearAddress()" title="Clear">×</button>
         </div>
 
-        <button class="star-btn" onclick="starCurrent()" title="Bookmark this">★</button>
+        <button class="star-btn" onclick="starCurrent()" title="Bookmark this page">★</button>
         <button class="go-btn" onclick="go()">Go</button>
-        <button class="real-tab-btn" onclick="openRealTab()">🔗 OPEN IN REAL TAB</button>
+        <button class="real-tab-btn" onclick="openRealTab()" title="Open in a real browser tab">🔗 New Tab</button>
     </div>
 
     <div class="main" id="main">
+        <div class="loading-bar" id="loadingBar"></div>
         <div id="home" class="home">
             <h1>NEON</h1>
-            <p style="color:#ffaa00;">↑ Your GAME | Manw23 Hub bookmark is above</p>
-            <input type="text" id="bigsearch" placeholder="manw23.github.io or search..." onkeypress="if(event.key==='Enter') quickGo()">
+            <p>↑ Your bookmarks are above</p>
+            <input type="text" id="bigsearch" placeholder="Search the web or type a URL..." onkeypress="if(event.key==='Enter') quickGo()">
+            <div class="home-shortcuts" id="homeShortcuts"></div>
         </div>
-        <iframe id="frame" style="display:none"></iframe>
+        <iframe id="frame" style="display:none" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox"></iframe>
     </div>
 
     <div class="panel" id="panel">
         <h4>Customize NEON</h4>
-        <label>Top Bar Color</label>
+        <label>Title Bar Color</label>
         <input type="color" id="titlebarColor" value="#1a1a1a" oninput="updateColors()">
-        <label>Search Bar Color</label>
+        <label>Toolbar Color</label>
         <input type="color" id="toolbarColor" value="#1a1a1a" oninput="updateColors()">
         <label>Background Image</label>
         <input type="file" id="bgUpload" accept="image/*" onchange="uploadBackground(event)">
         <button onclick="applyChanges()">Apply</button>
-        <button class="reset" onclick="resetCustomization()">Reset</button>
+        <button class="reset" onclick="resetCustomization()">Reset to Default</button>
     </div>
+
+    <div class="toast" id="toast"></div>
 
     <script>
         const addressBar = document.getElementById("address");
@@ -87,9 +437,19 @@
         const home = document.getElementById("home");
         const mainArea = document.getElementById("main");
         const panel = document.getElementById("panel");
+        const loadingBar = document.getElementById("loadingBar");
         let navHistory = [];
         let pos = -1;
 
+        // --- Toast Notifications ---
+        function showToast(msg, duration = 2000) {
+            const toast = document.getElementById("toast");
+            toast.textContent = msg;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), duration);
+        }
+
+        // --- Navigation History ---
         function addToHistory(url) {
             if (pos < navHistory.length - 1) {
                 navHistory = navHistory.slice(0, pos + 1);
@@ -98,6 +458,7 @@
             pos = navHistory.length - 1;
         }
 
+        // --- Bookmarks ---
         const defaultBookmark = {
             name: "GAME | Manw23 Hub",
             url: "https://manw23.github.io",
@@ -109,47 +470,87 @@
         function renderBookmarks() {
             const container = document.getElementById("bookmarks");
             container.innerHTML = "";
-
-            bookmarks.forEach(bm => {
+            bookmarks.forEach((bm, i) => {
                 const div = document.createElement("div");
                 div.className = "bookmark";
 
                 const img = document.createElement("img");
                 img.src = bm.icon;
                 img.alt = "";
-                img.style.width = "20px";
-                img.style.height = "20px";
                 img.onerror = () => {
-                    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='%23ffaa00'%3E%3Cpath d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/%3E%3C/svg%3E";
+                    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='%2300aaff'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ctext x='12' y='16' font-size='12' fill='white' text-anchor='middle' font-family='Arial'%3E" + bm.name.charAt(0).toUpperCase() + "%3C/text%3E%3C/svg%3E";
                 };
 
-                const text = document.createTextNode(" " + bm.name);
+                const text = document.createElement("span");
+                text.textContent = bm.name;
                 div.appendChild(img);
                 div.appendChild(text);
                 div.onclick = () => visitBookmark(bm.url);
+
+                if (bm.url !== defaultBookmark.url) {
+                    const del = document.createElement("button");
+                    del.className = "delete-bm";
+                    del.textContent = "×";
+                    del.title = "Remove bookmark";
+                    del.onclick = (e) => { e.stopPropagation(); deleteBookmark(i); };
+                    div.appendChild(del);
+                }
+
                 container.appendChild(div);
             });
+            renderHomeShortcuts();
+        }
+
+        function renderHomeShortcuts() {
+            const container = document.getElementById("homeShortcuts");
+            container.innerHTML = "";
+            bookmarks.forEach(bm => {
+                const tile = document.createElement("div");
+                tile.className = "shortcut-tile";
+                tile.onclick = () => visitBookmark(bm.url);
+                const img = document.createElement("img");
+                img.src = bm.icon;
+                img.onerror = () => {
+                    img.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28' viewBox='0 0 24 24' fill='%2300aaff'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ctext x='12' y='16' font-size='12' fill='white' text-anchor='middle' font-family='Arial'%3E" + bm.name.charAt(0).toUpperCase() + "%3C/text%3E%3C/svg%3E";
+                };
+                const span = document.createElement("span");
+                span.textContent = bm.name;
+                tile.appendChild(img);
+                tile.appendChild(span);
+                container.appendChild(tile);
+            });
+        }
+
+        function deleteBookmark(index) {
+            const removed = bookmarks[index];
+            bookmarks.splice(index, 1);
+            localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+            renderBookmarks();
+            showToast("Removed: " + removed.name);
         }
 
         function visitBookmark(url) {
             home.style.display = "none";
             frame.style.display = "block";
             addressBar.value = url;
+            showLoading();
             frame.src = url;
             addToHistory(url);
         }
 
         function starCurrent() {
             let input = addressBar.value.trim();
-            if (!input) { alert("Type a URL first then click ★"); return; }
+            if (!input) { showToast("Type a URL first, then click ★"); return; }
             let url = input.startsWith("http") ? input : "https://" + input;
             let name = url.replace(/^https?:\/\//, '').split('/')[0];
-            if (bookmarks.some(b => b.url === url)) { alert("Already bookmarked!"); return; }
+            if (bookmarks.some(b => b.url === url)) { showToast("Already bookmarked!"); return; }
             bookmarks.push({ name, url, icon: "https://icons.duckduckgo.com/ip3/" + name + ".ico" });
             localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
             renderBookmarks();
+            showToast("Bookmarked: " + name);
         }
 
+        // --- Navigation ---
         function go() {
             let input = addressBar.value.trim();
             if (!input) return;
@@ -163,6 +564,7 @@
             } else {
                 targetUrl = "https://www.google.com/search?igu=1&q=" + encodeURIComponent(input);
             }
+            showLoading();
             frame.src = targetUrl;
             addToHistory(targetUrl);
         }
@@ -173,33 +575,65 @@
         }
 
         function back() {
-            if (pos > 0) { pos--; frame.src = navHistory[pos]; addressBar.value = navHistory[pos]; }
-            else if (pos === 0) { pos = -1; frame.style.display = "none"; home.style.display = "flex"; addressBar.value = ""; }
+            if (pos > 0) {
+                pos--;
+                showLoading();
+                frame.src = navHistory[pos];
+                addressBar.value = navHistory[pos];
+            } else if (pos === 0) {
+                pos = -1;
+                frame.style.display = "none";
+                home.style.display = "flex";
+                addressBar.value = "";
+            }
         }
+
         function forward() {
             if (pos < navHistory.length - 1) {
                 pos++;
                 home.style.display = "none";
                 frame.style.display = "block";
+                showLoading();
                 frame.src = navHistory[pos];
                 addressBar.value = navHistory[pos];
             }
         }
-        function refresh() { if (frame.src) frame.src = frame.src; }
 
-        function openRealTab() {
-            let input = addressBar.value.trim();
-            if (!input) { alert("Type a URL first!"); return; }
-            let url = input.startsWith("http") ? input : "https://" + input;
-            openRealTabWithURL(url);
+        function refresh() {
+            if (frame.src && frame.style.display !== "none") {
+                showLoading();
+                frame.src = frame.src;
+            }
         }
 
-        function openRealTabWithURL(url) {
+        function goHome() {
+            pos = -1;
+            frame.style.display = "none";
+            home.style.display = "flex";
+            addressBar.value = "";
+            document.getElementById("bigsearch").value = "";
+            document.getElementById("bigsearch").focus();
+        }
+
+        // --- Loading Indicator ---
+        function showLoading() {
+            loadingBar.style.display = "block";
+        }
+
+        frame.addEventListener("load", () => {
+            loadingBar.style.display = "none";
+        });
+
+        // --- Open in Real Tab ---
+        function openRealTab() {
+            let input = addressBar.value.trim();
+            if (!input) { showToast("Type a URL first!"); return; }
+            let url = input.startsWith("http") ? input : "https://" + input;
             const newTab = window.open(url, '_blank');
             setTimeout(() => {
                 if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
                     navigator.clipboard.writeText(url).then(() => {
-                        alert("Popup blocked.\n✅ URL copied! Paste it in a new tab.");
+                        showToast("Popup blocked — URL copied! Paste in a new tab.");
                     }).catch(() => {
                         prompt("Copy this URL:", url);
                     });
@@ -207,6 +641,7 @@
             }, 700);
         }
 
+        // --- UI Helpers ---
         function clearAddress() {
             addressBar.value = "";
             addressBar.focus();
@@ -216,6 +651,23 @@
             panel.style.display = panel.style.display === "block" ? "none" : "block";
         }
 
+        // --- Keyboard Shortcuts ---
+        document.addEventListener("keydown", (e) => {
+            if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); back(); }
+            if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); forward(); }
+            if (e.altKey && e.key === "Home") { e.preventDefault(); goHome(); }
+            if (e.key === "F5") { e.preventDefault(); refresh(); }
+            if (e.key === "Escape" && panel.style.display === "block") { panel.style.display = "none"; }
+        });
+
+        // Close panel when clicking outside
+        document.addEventListener("click", (e) => {
+            if (panel.style.display === "block" && !panel.contains(e.target) && !e.target.classList.contains("customize-btn")) {
+                panel.style.display = "none";
+            }
+        });
+
+        // --- Customization ---
         function updateColors() {
             document.documentElement.style.setProperty('--titlebar-bg', document.getElementById("titlebarColor").value);
             document.documentElement.style.setProperty('--toolbar-bg', document.getElementById("toolbarColor").value);
@@ -228,6 +680,7 @@
             reader.onload = ev => {
                 mainArea.style.backgroundImage = `url('${ev.target.result}')`;
                 localStorage.setItem('neon_bg', ev.target.result);
+                showToast("Background updated!");
             };
             reader.readAsDataURL(file);
         }
@@ -236,6 +689,7 @@
             localStorage.setItem('neon_titlebar', document.getElementById("titlebarColor").value);
             localStorage.setItem('neon_toolbar', document.getElementById("toolbarColor").value);
             panel.style.display = "none";
+            showToast("Colors saved!");
         }
 
         function resetCustomization() {
@@ -245,26 +699,30 @@
             location.reload();
         }
 
+        // --- Load Saved Settings ---
         function loadSaved() {
             const saved = localStorage.getItem("neon_bookmarks");
             if (saved) {
-                const userBookmarks = JSON.parse(saved);
-                bookmarks = [defaultBookmark, ...userBookmarks.filter(b => b.url !== defaultBookmark.url)];
+                try {
+                    const userBookmarks = JSON.parse(saved);
+                    bookmarks = [defaultBookmark, ...userBookmarks.filter(b => b.url !== defaultBookmark.url)];
+                } catch (e) {
+                    bookmarks = [defaultBookmark];
+                }
             }
             const t = localStorage.getItem('neon_titlebar');
             const tb = localStorage.getItem('neon_toolbar');
             const bg = localStorage.getItem('neon_bg');
-            if (t) document.documentElement.style.setProperty('--titlebar-bg', t);
-            if (tb) document.documentElement.style.setProperty('--toolbar-bg', tb);
+            if (t) { document.documentElement.style.setProperty('--titlebar-bg', t); document.getElementById("titlebarColor").value = t; }
+            if (tb) { document.documentElement.style.setProperty('--toolbar-bg', tb); document.getElementById("toolbarColor").value = tb; }
             if (bg) mainArea.style.backgroundImage = `url('${bg}')`;
-            if (t) document.getElementById("titlebarColor").value = t;
-            if (tb) document.getElementById("toolbarColor").value = tb;
         }
 
+        // --- Init ---
         function init() {
             loadSaved();
             renderBookmarks();
-            setTimeout(() => addressBar.focus(), 400);
+            setTimeout(() => addressBar.focus(), 300);
         }
         init();
     </script>
