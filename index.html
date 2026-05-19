@@ -69,13 +69,32 @@
         }
         .auth-btn:hover, .customize-btn:hover { background: var(--surface-hover); color: #fff; }
         .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
             background: var(--accent);
             color: #000;
-            padding: 4px 10px;
-            border-radius: 12px;
+            padding: 3px 10px 3px 3px;
+            border-radius: 14px;
             font-size: 11px;
             font-weight: bold;
             cursor: pointer;
+        }
+        .user-badge.no-pic { padding: 4px 10px; }
+        .user-avatar {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .profile-pic-preview {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent);
+            display: block;
+            margin: 0 auto 10px;
         }
 
         /* Tabs Bar */
@@ -1044,9 +1063,22 @@
                 area.innerHTML = '';
                 const badge = document.createElement("span");
                 badge.className = "user-badge";
-                badge.textContent = currentUser.display_name || currentUser.email;
                 badge.title = currentUser.email;
                 badge.onclick = showAccountModal;
+                const picUrl = currentUser.profile_pic || localStorage.getItem('neon_profile_pic');
+                if (picUrl) {
+                    const avatar = document.createElement('img');
+                    avatar.className = 'user-avatar';
+                    avatar.src = picUrl;
+                    avatar.alt = '';
+                    avatar.onerror = () => { avatar.style.display = 'none'; badge.classList.add('no-pic'); };
+                    badge.appendChild(avatar);
+                } else {
+                    badge.classList.add('no-pic');
+                }
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = currentUser.display_name || currentUser.email;
+                badge.appendChild(nameSpan);
                 area.appendChild(badge);
             } else {
                 area.innerHTML = '';
@@ -1092,14 +1124,100 @@
         function showAccountModal() {
             const modal = document.getElementById("authModal");
             const content = document.getElementById("authModalContent");
+            const picUrl = currentUser.profile_pic || localStorage.getItem('neon_profile_pic') || '';
+            const picHtml = picUrl ? `<img src="${picUrl}" class="profile-pic-preview" onerror="this.style.display='none'">` : '';
             content.innerHTML = `
                 <h3>Account</h3>
+                ${picHtml}
                 <p style="color:#aaa;margin-bottom:8px">Signed in as <strong>${currentUser.email}</strong></p>
                 <button class="modal-btn" onclick="doSync()">Sync Now</button>
+                <button class="modal-btn" onclick="showProfilePicModal()">Set Profile Picture</button>
+                <button class="modal-btn" onclick="showChangePasswordModal()">Change Password</button>
                 <button class="modal-btn danger" onclick="doLogout()">Sign Out</button>
                 <button class="modal-btn secondary" onclick="closeAuthModal()">Close</button>
             `;
             modal.classList.add("show");
+        }
+
+        function showProfilePicModal() {
+            const content = document.getElementById("authModalContent");
+            const picUrl = currentUser.profile_pic || localStorage.getItem('neon_profile_pic') || '';
+            content.innerHTML = `
+                <h3>Profile Picture</h3>
+                <p style="color:#aaa;font-size:12px;margin-bottom:8px">Paste an image URL for your profile picture</p>
+                <input type="url" id="profilePicUrl" placeholder="https://example.com/my-photo.jpg" value="${picUrl}">
+                <div id="authError" class="error-msg"></div>
+                <div id="picPreviewArea" style="text-align:center;margin:10px 0">${picUrl ? '<img src="' + picUrl + '" class="profile-pic-preview" onerror="this.style.display=\'none\'">' : ''}</div>
+                <button class="modal-btn" onclick="saveProfilePic()">Save</button>
+                <button class="modal-btn secondary" onclick="showAccountModal()">Back</button>
+            `;
+            const input = document.getElementById('profilePicUrl');
+            input.addEventListener('input', () => {
+                const url = input.value.trim();
+                const area = document.getElementById('picPreviewArea');
+                if (url) {
+                    area.innerHTML = '<img src="' + url + '" class="profile-pic-preview" onerror="this.style.display=\'none\'">';
+                } else {
+                    area.innerHTML = '';
+                }
+            });
+            setTimeout(() => input.focus(), 100);
+        }
+
+        async function saveProfilePic() {
+            const url = document.getElementById('profilePicUrl').value.trim();
+            currentUser.profile_pic = url || null;
+            localStorage.setItem('neon_profile_pic', url);
+            renderAuthArea();
+            if (authToken) {
+                try {
+                    await fetch(API_URL + "/profile", {
+                        method: "PUT",
+                        headers: { "Authorization": "Bearer " + authToken, "Content-Type": "application/json" },
+                        body: JSON.stringify({ profile_pic: url || "" })
+                    });
+                } catch (e) {}
+            }
+            showToast(url ? "Profile picture saved!" : "Profile picture removed");
+            showAccountModal();
+        }
+
+        function showChangePasswordModal() {
+            const content = document.getElementById("authModalContent");
+            content.innerHTML = `
+                <h3>Change Password</h3>
+                <input type="password" id="currentPass" placeholder="Current password">
+                <input type="password" id="newPass" placeholder="New password (4+ characters)">
+                <input type="password" id="confirmPass" placeholder="Confirm new password">
+                <div id="authError" class="error-msg"></div>
+                <button class="modal-btn" onclick="doChangePassword()">Change Password</button>
+                <button class="modal-btn secondary" onclick="showAccountModal()">Back</button>
+            `;
+            setTimeout(() => document.getElementById('currentPass').focus(), 100);
+        }
+
+        async function doChangePassword() {
+            const current = document.getElementById('currentPass').value;
+            const newPass = document.getElementById('newPass').value;
+            const confirm = document.getElementById('confirmPass').value;
+            const errEl = document.getElementById('authError');
+            if (!current || !newPass) { errEl.textContent = 'Fill in all fields'; return; }
+            if (newPass.length < 4) { errEl.textContent = 'New password must be 4+ characters'; return; }
+            if (newPass !== confirm) { errEl.textContent = 'Passwords do not match'; return; }
+            errEl.textContent = '';
+            try {
+                const res = await fetch(API_URL + '/change-password', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ current_password: current, new_password: newPass })
+                });
+                const data = await res.json();
+                if (!res.ok) { errEl.textContent = data.detail || 'Failed'; return; }
+                showToast('Password changed!');
+                showAccountModal();
+            } catch (e) {
+                errEl.textContent = 'Connection error';
+            }
         }
 
         function closeAuthModal() {
@@ -1180,7 +1298,9 @@
                     return;
                 }
                 const data = await res.json();
-                currentUser = {email: data.email, display_name: data.display_name};
+                currentUser = {email: data.email, display_name: data.display_name, profile_pic: data.profile_pic || null};
+                if (data.profile_pic) localStorage.setItem('neon_profile_pic', data.profile_pic);
+                renderAuthArea();
                 if (data.bookmarks && data.bookmarks.length > 0) {
                     bookmarks = [defaultBookmark, ...data.bookmarks.filter(b => b.url !== defaultBookmark.url)];
                     localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
@@ -1212,7 +1332,8 @@
                     body: JSON.stringify({
                         bookmarks: userBookmarks,
                         titlebar_color: localStorage.getItem('neon_titlebar'),
-                        toolbar_color: localStorage.getItem('neon_toolbar')
+                        toolbar_color: localStorage.getItem('neon_toolbar'),
+                        profile_pic: localStorage.getItem('neon_profile_pic') || ''
                     })
                 });
             } catch (e) {}
