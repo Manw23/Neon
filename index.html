@@ -87,8 +87,16 @@
         const home = document.getElementById("home");
         const mainArea = document.getElementById("main");
         const panel = document.getElementById("panel");
-        let history = [];
+        let navHistory = [];
         let pos = -1;
+
+        function addToHistory(url) {
+            if (pos < navHistory.length - 1) {
+                navHistory = navHistory.slice(0, pos + 1);
+            }
+            navHistory.push(url);
+            pos = navHistory.length - 1;
+        }
 
         const defaultBookmark = {
             name: "GAME | Manw23 Hub",
@@ -127,8 +135,8 @@
             home.style.display = "none";
             frame.style.display = "block";
             addressBar.value = url;
-            frame.src = "https://duckduckgo.com/?q=" + encodeURIComponent(url);
-            openRealTabWithURL(url);
+            frame.src = url;
+            addToHistory(url);
         }
 
         function starCurrent() {
@@ -147,14 +155,16 @@
             if (!input) return;
             home.style.display = "none";
             frame.style.display = "block";
+            let targetUrl;
             if (input.includes(".") && !input.includes(" ")) {
                 let url = input.startsWith("http") ? input : "https://" + input;
                 addressBar.value = url;
-                frame.src = "https://duckduckgo.com/?q=" + encodeURIComponent(url);
-                openRealTabWithURL(url);
+                targetUrl = url;
             } else {
-                frame.src = "https://duckduckgo.com/?q=" + encodeURIComponent(input);
+                targetUrl = "https://duckduckgo.com/?q=" + encodeURIComponent(input);
             }
+            frame.src = targetUrl;
+            addToHistory(targetUrl);
         }
 
         function quickGo() {
@@ -162,8 +172,8 @@
             go();
         }
 
-        function back() { if (pos > 0) { pos--; frame.src = history[pos]; } }
-        function forward() { if (pos < history.length - 1) { pos++; frame.src = history[pos]; } }
+        function back() { if (pos > 0) { pos--; frame.src = navHistory[pos]; addressBar.value = navHistory[pos]; } }
+        function forward() { if (pos < navHistory.length - 1) { pos++; frame.src = navHistory[pos]; addressBar.value = navHistory[pos]; } }
         function refresh() { if (frame.src) frame.src = frame.src; }
 
         function openRealTab() {
@@ -218,7 +228,9 @@
         }
 
         function resetCustomization() {
-            localStorage.clear();
+            localStorage.removeItem('neon_titlebar');
+            localStorage.removeItem('neon_toolbar');
+            localStorage.removeItem('neon_bg');
             location.reload();
         }
 
