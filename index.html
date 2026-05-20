@@ -631,6 +631,11 @@
         <input type="color" id="toolbarColor" value="#1a1a1a" oninput="updateColors()">
         <label>Background Image</label>
         <input type="file" id="bgUpload" accept="image/*" onchange="uploadBackground(event)">
+        <label style="margin-top:14px;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#ccc">
+            <input type="checkbox" id="proxyToggle" onchange="toggleProxy()" style="accent-color:var(--accent);width:16px;height:16px">
+            Unblock websites (proxy mode)
+        </label>
+        <p style="font-size:11px;color:#888;margin-top:2px">Routes sites through a proxy to bypass "refused to connect" errors</p>
         <button onclick="applyChanges()">Apply</button>
         <button class="reset" onclick="resetCustomization()">Reset to Default</button>
     </div>
@@ -751,8 +756,8 @@
 
         function proxyUrl(url) {
             if (!useProxy) return url;
-            if (url.startsWith('/proxy')) return url;
-            return "/proxy?url=" + encodeURIComponent(url);
+            if (url.includes('api.allorigins.win')) return url;
+            return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
         }
 
         function navigateInTab(tab, url) {
@@ -1022,7 +1027,7 @@
             if (tab.pos > 0) {
                 tab.pos--;
                 showLoading();
-                tab.iframe.src = tab.navHistory[tab.pos];
+                tab.iframe.src = proxyUrl(tab.navHistory[tab.pos]);
                 addressBar.value = tab.navHistory[tab.pos];
                 const h1 = tab.navHistory[tab.pos].replace(/^https?:\/\//, '').split('/')[0];
                 tab.title = h1;
@@ -1049,7 +1054,7 @@
                 home.style.display = "none";
                 tab.iframe.style.display = "block";
                 showLoading();
-                tab.iframe.src = tab.navHistory[tab.pos];
+                tab.iframe.src = proxyUrl(tab.navHistory[tab.pos]);
                 addressBar.value = tab.navHistory[tab.pos];
                 const h2 = tab.navHistory[tab.pos].replace(/^https?:\/\//, '').split('/')[0];
                 tab.title = h2;
@@ -1159,6 +1164,12 @@
                 showToast("Background updated!");
             };
             reader.readAsDataURL(file);
+        }
+
+        function toggleProxy() {
+            useProxy = document.getElementById("proxyToggle").checked;
+            localStorage.setItem('neon_proxy', useProxy ? 'true' : 'false');
+            showToast(useProxy ? "Proxy mode ON — websites will load through proxy" : "Proxy mode OFF — direct loading");
         }
 
         function applyChanges() {
@@ -1487,6 +1498,7 @@
             if (t) { document.documentElement.style.setProperty('--titlebar-bg', t); document.getElementById("titlebarColor").value = t; }
             if (tb) { document.documentElement.style.setProperty('--toolbar-bg', tb); document.getElementById("toolbarColor").value = tb; }
             if (bg) mainArea.style.backgroundImage = `url('${bg}')`;
+            document.getElementById("proxyToggle").checked = useProxy;
         }
 
         // ==================== INIT ====================
@@ -1519,7 +1531,7 @@
                             };
                             tabs.push(tab);
                             if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
-                                iframe.src = tab.navHistory[tab.pos];
+                                iframe.src = proxyUrl(tab.navHistory[tab.pos]);
                             }
                         });
                         const activeId = savedActive ? parseInt(savedActive) : null;
