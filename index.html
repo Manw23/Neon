@@ -747,6 +747,14 @@
             return tabs.find(t => t.id === activeTabId);
         }
 
+        let useProxy = localStorage.getItem('neon_proxy') === 'true';
+
+        function proxyUrl(url) {
+            if (!useProxy) return url;
+            if (url.startsWith('/proxy')) return url;
+            return "/proxy?url=" + encodeURIComponent(url);
+        }
+
         function navigateInTab(tab, url) {
             if (tab.pos < tab.navHistory.length - 1) {
                 tab.navHistory = tab.navHistory.slice(0, tab.pos + 1);
@@ -761,7 +769,7 @@
             home.style.display = "none";
             tab.iframe.style.display = "block";
             showLoading();
-            tab.iframe.src = url;
+            tab.iframe.src = proxyUrl(url);
             addressBar.value = url;
             renderTabs();
             saveNavState();
@@ -1331,7 +1339,7 @@
                 showToast('Password changed!');
                 showAccountModal();
             } catch (e) {
-                errEl.textContent = 'Connection error';
+                errEl.textContent = "Can't reach server right now";
             }
         }
 
@@ -1361,7 +1369,7 @@
                 showToast("Welcome back, " + (currentUser.display_name || currentUser.email) + "!");
                 loadFromCloud();
             } catch (e) {
-                errEl.textContent = "Connection error";
+                errEl.textContent = "Can't reach server. Sign-in is optional — your bookmarks save locally!";
             }
         }
 
@@ -1389,7 +1397,7 @@
                 showToast("Account created! Welcome, " + currentUser.display_name + "!");
                 syncToCloud();
             } catch (e) {
-                errEl.textContent = "Connection error";
+                errEl.textContent = "Can't reach server. Sign-in is optional — your bookmarks save locally!";
             }
         }
 
