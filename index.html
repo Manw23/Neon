@@ -597,15 +597,11 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const API_URL = (location.hostname === "neon-katkmcgp.devinapps.com") ? "https://50536b280dca-tunnel-iuznimg9.devinapps.com" : "";
-        const TUNNEL_AUTH = "Basic dXNlcjozODE3MjZiMmYzODRmZmZkZDNmMGFmNzE1ZjY2ODhlOQ==";
+        const API_URL = "";
         function apiFetch(path, opts = {}) {
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open(opts.method || "GET", API_URL + path, true);
-                if (API_URL) {
-                    xhr.setRequestHeader("Authorization", TUNNEL_AUTH);
-                }
                 if (opts.headers) {
                     for (const [k, v] of Object.entries(opts.headers)) {
                         xhr.setRequestHeader(k, v);
