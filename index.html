@@ -154,9 +154,10 @@
             font-size: 18px;
             cursor: pointer;
             padding: 6px 12px;
-            transition: color 0.15s;
+            transition: color 0.15s, background 0.15s;
+            border-radius: 6px;
         }
-        .new-tab-btn:hover { color: #fff; }
+        .new-tab-btn:hover { color: #fff; background: var(--surface); }
 
         /* Bookmarks Bar */
         .bookmarks {
@@ -1120,6 +1121,8 @@
             if (e.key === "Escape" && panel.style.display === "block") { panel.style.display = "none"; }
             if (e.ctrlKey && e.key === "t") { e.preventDefault(); createTab(); }
             if (e.ctrlKey && e.key === "w") { e.preventDefault(); if (activeTabId !== null) closeTab(activeTabId); }
+            if (e.ctrlKey && e.key === "l") { e.preventDefault(); addressBar.select(); addressBar.focus(); }
+            if (e.ctrlKey && e.key === "k") { e.preventDefault(); addressBar.value = ""; addressBar.focus(); }
         });
 
         document.addEventListener("click", (e) => {
