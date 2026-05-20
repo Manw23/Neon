@@ -669,28 +669,38 @@
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 const method = opts.method || "GET";
+                let url, sendBody = null;
+
                 if (IS_BACKEND) {
-                    xhr.open(method, path, true);
+                    url = path;
+                    xhr.open(method, url, true);
+                    if (opts.headers) {
+                        for (const [k, v] of Object.entries(opts.headers)) xhr.setRequestHeader(k, v);
+                    }
+                    sendBody = opts.body || null;
                 } else {
-                    xhr.open(method, API_URL + path, true, TUNNEL_USER, TUNNEL_PASS);
+                    // Cross-origin: avoid CORS preflight
+                    let p = path;
+                    if (opts.headers && opts.headers["X-Auth-Token"]) {
+                        const sep = p.includes("?") ? "&" : "?";
+                        p += sep + "_token=" + encodeURIComponent(opts.headers["X-Auth-Token"]);
+                    }
+                    url = API_URL + p;
+                    xhr.open(method, url, true, TUNNEL_USER, TUNNEL_PASS);
                     xhr.withCredentials = true;
-                }
-                // Use form-encoded for cross-origin to avoid CORS preflight
-                if (opts.body && !IS_BACKEND) {
-                    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                } else if (opts.headers) {
-                    for (const [k, v] of Object.entries(opts.headers)) {
-                        xhr.setRequestHeader(k, v);
+                    if (opts.body) {
+                        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                        try {
+                            const data = JSON.parse(opts.body);
+                            const params = new URLSearchParams();
+                            for (const [k, v] of Object.entries(data)) {
+                                params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
+                            }
+                            sendBody = params.toString();
+                        } catch (e) { sendBody = opts.body; }
                     }
                 }
-                // For cross-origin, pass NEON auth token as query param
-                if (!IS_BACKEND && opts.headers && opts.headers["X-Auth-Token"]) {
-                    const sep = path.includes("?") ? "&" : "?";
-                    const tokenPath = path + sep + "_token=" + encodeURIComponent(opts.headers["X-Auth-Token"]);
-                    xhr.open(method, API_URL + tokenPath, true, TUNNEL_USER, TUNNEL_PASS);
-                    xhr.withCredentials = true;
-                    if (opts.body) xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                }
+
                 xhr.onload = function() {
                     resolve({
                         ok: xhr.status >= 200 && xhr.status < 300,
@@ -700,21 +710,7 @@
                     });
                 };
                 xhr.onerror = function() { reject(new Error("Connection error")); };
-                // Convert JSON body to form-encoded for cross-origin
-                if (opts.body && !IS_BACKEND) {
-                    try {
-                        const data = JSON.parse(opts.body);
-                        const params = new URLSearchParams();
-                        for (const [k, v] of Object.entries(data)) {
-                            params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
-                        }
-                        xhr.send(params.toString());
-                    } catch (e) {
-                        xhr.send(opts.body);
-                    }
-                } else {
-                    xhr.send(opts.body || null);
-                }
+                xhr.send(sendBody);
             });
         }
         const addressBar = document.getElementById("address");
@@ -1117,11 +1113,9 @@
             const btn = document.querySelector('[onclick="refresh()"]');
             if (btn) btn.classList.add('spinning');
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
-            try {
-                tab.iframe.contentWindow.location.reload();
-            } catch (e) {
-                tab.iframe.src = tab.iframe.src;
-            }
+            // Use the current URL from nav history (what's shown in address bar)
+            const currentUrl = (tab.pos >= 0 && tab.pos < tab.navHistory.length) ? tab.navHistory[tab.pos] : tab.iframe.src;
+            tab.iframe.src = proxyUrl(currentUrl);
         }
 
         function goHome() {
