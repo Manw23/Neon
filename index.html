@@ -661,22 +661,61 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const API_URL = "https://50536b280dca-tunnel-iuznimg9.devinapps.com";
-        const TUNNEL_AUTH = "Basic " + btoa("user:381726b2f384fffdd3f0af715f6688e9");
-        async function apiFetch(path, opts = {}) {
-            const headers = Object.assign({}, opts.headers || {});
-            headers["Authorization"] = TUNNEL_AUTH;
-            const res = await fetch(API_URL + path, {
-                method: opts.method || "GET",
-                headers,
-                body: opts.body || undefined
+        const IS_BACKEND = location.hostname.includes("tunnel") || location.port === "8001";
+        const API_URL = IS_BACKEND ? "" : "https://50536b280dca-tunnel-iuznimg9.devinapps.com";
+        const TUNNEL_USER = "user";
+        const TUNNEL_PASS = "381726b2f384fffdd3f0af715f6688e9";
+        function apiFetch(path, opts = {}) {
+            return new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                const method = opts.method || "GET";
+                if (IS_BACKEND) {
+                    xhr.open(method, path, true);
+                } else {
+                    xhr.open(method, API_URL + path, true, TUNNEL_USER, TUNNEL_PASS);
+                    xhr.withCredentials = true;
+                }
+                // Use form-encoded for cross-origin to avoid CORS preflight
+                if (opts.body && !IS_BACKEND) {
+                    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                } else if (opts.headers) {
+                    for (const [k, v] of Object.entries(opts.headers)) {
+                        xhr.setRequestHeader(k, v);
+                    }
+                }
+                // For cross-origin, pass NEON auth token as query param
+                if (!IS_BACKEND && opts.headers && opts.headers["X-Auth-Token"]) {
+                    const sep = path.includes("?") ? "&" : "?";
+                    const tokenPath = path + sep + "_token=" + encodeURIComponent(opts.headers["X-Auth-Token"]);
+                    xhr.open(method, API_URL + tokenPath, true, TUNNEL_USER, TUNNEL_PASS);
+                    xhr.withCredentials = true;
+                    if (opts.body) xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+                }
+                xhr.onload = function() {
+                    resolve({
+                        ok: xhr.status >= 200 && xhr.status < 300,
+                        status: xhr.status,
+                        json: () => Promise.resolve(JSON.parse(xhr.responseText)),
+                        text: () => Promise.resolve(xhr.responseText)
+                    });
+                };
+                xhr.onerror = function() { reject(new Error("Connection error")); };
+                // Convert JSON body to form-encoded for cross-origin
+                if (opts.body && !IS_BACKEND) {
+                    try {
+                        const data = JSON.parse(opts.body);
+                        const params = new URLSearchParams();
+                        for (const [k, v] of Object.entries(data)) {
+                            params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
+                        }
+                        xhr.send(params.toString());
+                    } catch (e) {
+                        xhr.send(opts.body);
+                    }
+                } else {
+                    xhr.send(opts.body || null);
+                }
             });
-            return {
-                ok: res.ok,
-                status: res.status,
-                json: () => res.json(),
-                text: () => res.text()
-            };
         }
         const addressBar = document.getElementById("address");
         const home = document.getElementById("home");
