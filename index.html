@@ -597,11 +597,15 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const API_URL = "";
+        const API_URL = (location.hostname === "neon-katkmcgp.devinapps.com") ? "https://50536b280dca-tunnel-iuznimg9.devinapps.com" : "";
+        const TUNNEL_AUTH = "Basic dXNlcjozODE3MjZiMmYzODRmZmZkZDNmMGFmNzE1ZjY2ODhlOQ==";
         function apiFetch(path, opts = {}) {
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 xhr.open(opts.method || "GET", API_URL + path, true);
+                if (API_URL) {
+                    xhr.setRequestHeader("Authorization", TUNNEL_AUTH);
+                }
                 if (opts.headers) {
                     for (const [k, v] of Object.entries(opts.headers)) {
                         xhr.setRequestHeader(k, v);
@@ -803,7 +807,22 @@
             if (!tab) return;
             const url = (tab.pos >= 0 && tab.pos < tab.navHistory.length) ? tab.navHistory[tab.pos] : '';
             localStorage.setItem('neon_current_url', url);
+            saveAllTabs();
         }
+        function saveAllTabs() {
+            const data = tabs.map(t => ({
+                id: t.id,
+                title: t.title,
+                url: t.url,
+                navHistory: t.navHistory,
+                pos: t.pos,
+                icon: t.icon
+            }));
+            localStorage.setItem('neon_tabs', JSON.stringify(data));
+            const act = getActiveTab();
+            if (act) localStorage.setItem('neon_active_tab', String(act.id));
+        }
+        window.addEventListener('beforeunload', saveAllTabs);
 
         // ==================== BOOKMARKS ====================
         const defaultBookmark = {
@@ -1194,7 +1213,7 @@
                 try {
                     await apiFetch("/profile", {
                         method: "PUT",
-                        headers: { "Authorization": "Bearer " + authToken, "Content-Type": "application/json" },
+                        headers: { "X-Auth-Token": authToken, "Content-Type": "application/json" },
                         body: JSON.stringify({ profile_pic: url || "" })
                     });
                 } catch (e) {}
@@ -1229,7 +1248,7 @@
             try {
                 const res = await apiFetch('/change-password', {
                     method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + authToken, 'Content-Type': 'application/json' },
+                    headers: { 'X-Auth-Token': authToken, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ current_password: current, new_password: newPass })
                 });
                 const data = await res.json();
@@ -1312,7 +1331,7 @@
             if (!authToken) return;
             try {
                 const res = await apiFetch("/profile", {
-                    headers: {"Authorization": "Bearer " + authToken}
+                    headers: {"X-Auth-Token": authToken}
                 });
                 if (!res.ok) {
                     if (res.status === 401) { doLogout(); return; }
@@ -1347,7 +1366,7 @@
                 await apiFetch("/profile", {
                     method: "PUT",
                     headers: {
-                        "Authorization": "Bearer " + authToken,
+                        "X-Auth-Token": authToken,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
@@ -1393,11 +1412,49 @@
             renderBookmarks();
             renderAuthArea();
 
-            const lastUrl = localStorage.getItem('neon_current_url');
-            const firstTab = createTab(lastUrl || undefined);
-
-            if (!lastUrl) {
-                setTimeout(() => addressBar.focus(), 300);
+            const savedTabs = localStorage.getItem('neon_tabs');
+            const savedActive = localStorage.getItem('neon_active_tab');
+            if (savedTabs) {
+                try {
+                    const parsed = JSON.parse(savedTabs);
+                    if (parsed.length > 0) {
+                        parsed.forEach(t => {
+                            const iframe = document.createElement("iframe");
+                            iframe.id = "frame-" + tabIdCounter;
+                            iframe.style.display = "none";
+                            iframe.sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox";
+                            iframe.addEventListener("load", () => { loadingBar.style.display = "none"; });
+                            mainArea.appendChild(iframe);
+                            const tab = {
+                                id: tabIdCounter++,
+                                title: t.title || "New Tab",
+                                url: t.url || "",
+                                navHistory: t.navHistory || [],
+                                pos: t.pos != null ? t.pos : -1,
+                                iframe,
+                                icon: t.icon || null
+                            };
+                            tabs.push(tab);
+                            if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
+                                iframe.src = tab.navHistory[tab.pos];
+                            }
+                        });
+                        const activeId = savedActive ? parseInt(savedActive) : null;
+                        const targetId = (activeId !== null && tabs.some(t2 => t2.id === activeId)) ? activeId : tabs[0].id;
+                        switchTab(targetId);
+                        renderTabs();
+                    } else {
+                        createTab();
+                        setTimeout(() => addressBar.focus(), 300);
+                    }
+                } catch (e) {
+                    createTab();
+                    setTimeout(() => addressBar.focus(), 300);
+                }
+            } else {
+                const lastUrl = localStorage.getItem('neon_current_url');
+                createTab(lastUrl || undefined);
+                if (!lastUrl) setTimeout(() => addressBar.focus(), 300);
             }
 
             if (authToken) {
