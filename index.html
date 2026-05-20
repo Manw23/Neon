@@ -92,6 +92,18 @@
             border-radius: 50%;
             object-fit: cover;
         }
+        .user-avatar-initial {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
         .profile-pic-preview {
             width: 60px;
             height: 60px;
@@ -649,27 +661,22 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        const API_URL = "";
-        function apiFetch(path, opts = {}) {
-            return new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open(opts.method || "GET", API_URL + path, true);
-                if (opts.headers) {
-                    for (const [k, v] of Object.entries(opts.headers)) {
-                        xhr.setRequestHeader(k, v);
-                    }
-                }
-                xhr.onload = function() {
-                    resolve({
-                        ok: xhr.status >= 200 && xhr.status < 300,
-                        status: xhr.status,
-                        json: () => Promise.resolve(JSON.parse(xhr.responseText)),
-                        text: () => Promise.resolve(xhr.responseText)
-                    });
-                };
-                xhr.onerror = function() { reject(new Error("Connection error")); };
-                xhr.send(opts.body || null);
+        const API_URL = "https://50536b280dca-tunnel-iuznimg9.devinapps.com";
+        const TUNNEL_AUTH = "Basic " + btoa("user:381726b2f384fffdd3f0af715f6688e9");
+        async function apiFetch(path, opts = {}) {
+            const headers = Object.assign({}, opts.headers || {});
+            headers["Authorization"] = TUNNEL_AUTH;
+            const res = await fetch(API_URL + path, {
+                method: opts.method || "GET",
+                headers,
+                body: opts.body || undefined
             });
+            return {
+                ok: res.ok,
+                status: res.status,
+                json: () => res.json(),
+                text: () => res.text()
+            };
         }
         const addressBar = document.getElementById("address");
         const home = document.getElementById("home");
@@ -1191,6 +1198,17 @@
         let authToken = localStorage.getItem('neon_token');
         let currentUser = null;
 
+        function makeInitialAvatar(name) {
+            const letter = (name || "?").charAt(0).toUpperCase();
+            const colors = ["#e74c3c","#e67e22","#f1c40f","#2ecc71","#1abc9c","#3498db","#9b59b6","#e91e63","#00bcd4","#ff5722"];
+            const idx = letter.charCodeAt(0) % colors.length;
+            const el = document.createElement('div');
+            el.className = 'user-avatar-initial';
+            el.textContent = letter;
+            el.style.background = colors[idx];
+            return el;
+        }
+
         function renderAuthArea() {
             const area = document.getElementById("authArea");
             if (authToken && currentUser) {
@@ -1205,10 +1223,10 @@
                     avatar.className = 'user-avatar';
                     avatar.src = picUrl;
                     avatar.alt = '';
-                    avatar.onerror = () => { avatar.style.display = 'none'; badge.classList.add('no-pic'); };
+                    avatar.onerror = () => { avatar.remove(); badge.prepend(makeInitialAvatar(currentUser.display_name || currentUser.email)); };
                     badge.appendChild(avatar);
                 } else {
-                    badge.classList.add('no-pic');
+                    badge.prepend(makeInitialAvatar(currentUser.display_name || currentUser.email));
                 }
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = currentUser.display_name || currentUser.email;
@@ -1259,7 +1277,12 @@
             const modal = document.getElementById("authModal");
             const content = document.getElementById("authModalContent");
             const picUrl = currentUser.profile_pic || localStorage.getItem('neon_profile_pic') || '';
-            const picHtml = picUrl ? `<img src="${picUrl}" class="profile-pic-preview" onerror="this.style.display='none'">` : '';
+            const initLetter = (currentUser.display_name || currentUser.email || "?").charAt(0).toUpperCase();
+            const avatarColors = ["#e74c3c","#e67e22","#f1c40f","#2ecc71","#1abc9c","#3498db","#9b59b6","#e91e63","#00bcd4","#ff5722"];
+            const avatarColor = avatarColors[initLetter.charCodeAt(0) % avatarColors.length];
+            const picHtml = picUrl
+                ? `<img src="${picUrl}" class="profile-pic-preview" onerror="this.outerHTML='<div style=\\'width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${avatarColor};color:#fff;font-size:28px;font-weight:700;margin:0 auto\\'>${initLetter}</div>'">`
+                : `<div style="width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${avatarColor};color:#fff;font-size:28px;font-weight:700;margin:0 auto">${initLetter}</div>`;
             content.innerHTML = `
                 <h3>Account</h3>
                 ${picHtml}
