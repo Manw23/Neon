@@ -170,6 +170,10 @@
             border-radius: 6px;
         }
         .new-tab-btn:hover { color: #fff; background: var(--surface); }
+        .tab-count {
+            background: var(--accent); color: #000; font-size: 9px; font-weight: bold;
+            padding: 1px 5px; border-radius: 8px; margin-left: 4px;
+        }
 
         /* Bookmarks Bar */
         .bookmarks {
@@ -788,7 +792,7 @@
     </div>
 
     <div class="tabs-bar" id="tabsBar">
-        <button class="new-tab-btn" onclick="createTab()" title="New Tab (Ctrl+T)">+</button>
+        <button class="new-tab-btn" onclick="createTab()" title="New Tab (Ctrl+T)">+ <span class="tab-count" id="tabCount">1</span></button>
     </div>
 
     <div class="bookmarks" id="bookmarks"></div>
@@ -1081,6 +1085,7 @@
             const addBtn = bar.querySelector(".new-tab-btn");
             bar.querySelectorAll(".tab").forEach(el => el.remove());
 
+            document.getElementById('tabCount').textContent = tabs.length;
             tabs.forEach((tab, idx) => {
                 const div = document.createElement("div");
                 div.className = "tab" + (tab.id === activeTabId ? " active" : "") + (tab.pinned ? " pinned" : "") + (tab.incognito ? " incognito" : "");
