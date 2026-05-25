@@ -1674,76 +1674,93 @@
         }
         init();
 
-        // ==================== PHONK MUSIC PLAYER ====================
+        // ==================== EDIT MUSIC PLAYER (YouTube) ====================
         const phonkTracks = [
             // Electronic & Phonk (High Energy)
-            {title: "Sunroof – Nicky Youre", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
-            {title: "Metamorphosis – INTERWORLD", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
-            {title: "Rave – Dxrk 🔥", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
-            {title: "Close Eyes – DVRST", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
-            {title: "Alone – Marshmello", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
-            {title: "Fade – Alan Walker", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
-            {title: "Nevada – Vicetone", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
-            {title: "Fly – Marshmello", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+            {title: "Sunroof – Nicky Youre", ytId: "G5xSLbYMr-I"},
+            {title: "Metamorphosis – INTERWORLD", ytId: "uYU3eOjgA6A"},
+            {title: "Rave – Dxrk", ytId: "PTZgxW_3LIQ"},
+            {title: "Close Eyes – DVRST", ytId: "ao4RCon11eY"},
+            {title: "Alone – Marshmello", ytId: "ALZHF5UqnU4"},
+            {title: "Fade – Alan Walker", ytId: "60ItHLz5WEA"},
+            {title: "Nevada – Vicetone", ytId: "AnMhdn0wJ4I"},
+            {title: "Fly – Marshmello", ytId: "oRArmtMA9AI"},
             // Hip-Hop & Cinematic Beats (Hype/Sports)
-            {title: "Industry Baby – Lil Nas X", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"},
-            {title: "Remember the Name – Fort Minor", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3"},
-            {title: "Life Is Good – Future ft. Drake", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3"},
-            {title: "Centuries – Fall Out Boy", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3"},
-            {title: "Legends Are Made – Sam Tinnesz", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3"},
-            {title: "Unstoppable – The Score", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3"},
-            {title: "Ready Set Go – Royal Deluxe", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"},
+            {title: "Industry Baby – Lil Nas X", ytId: "UTHLKHL_whs"},
+            {title: "Remember the Name – Fort Minor", ytId: "VDvr08sCPOc"},
+            {title: "Life Is Good – Future ft. Drake", ytId: "l0U7SxXHkPY"},
+            {title: "Centuries – Fall Out Boy", ytId: "LBr7kECsjcQ"},
+            {title: "Legends Are Made – Sam Tinnesz", ytId: "EKVZrbitbd8"},
+            {title: "Unstoppable – The Score", ytId: "_PBlykN4KIY"},
+            {title: "Ready Set Go – Royal Deluxe", ytId: "5X3p7CBC-Lo"},
             // Pop & Trend Beats (Smooth/Aesthetic)
-            {title: "Stay – Kid LAROI & Justin Bieber", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3"},
-            {title: "Blinding Lights – The Weeknd", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
-            {title: "Golden Hour – JVKE", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
-            {title: "As It Was – Harry Styles", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
-            {title: "Starboy – The Weeknd", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
-            {title: "Heat Waves – Glass Animals", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
+            {title: "Stay – Kid LAROI & Justin Bieber", ytId: "kTJczUoc26U"},
+            {title: "Blinding Lights – The Weeknd", ytId: "4NRXx6U8ABQ"},
+            {title: "Golden Hour – JVKE", ytId: "PEM0Vs8jf1w"},
+            {title: "As It Was – Harry Styles", ytId: "H5v3kku4y6Q"},
+            {title: "Starboy – The Weeknd", ytId: "34Na4j8AVgA"},
+            {title: "Heat Waves – Glass Animals", ytId: "mRD0-GxqHVo"},
             // No-Copyright Essentials (NCS)
-            {title: "Mortals – Warriyo [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
-            {title: "Blank – Disfigure [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
-            {title: "My Heart – Different Heaven [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
-            {title: "Cloud 9 – Itro & Tobu [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"},
+            {title: "Mortals – Warriyo [NCS]", ytId: "yJg-Y5byMMw"},
+            {title: "Blank – Disfigure [NCS]", ytId: "p7ZsBPK656s"},
+            {title: "My Heart – Different Heaven [NCS]", ytId: "jK2aIUmmdP4"},
+            {title: "Cloud 9 – Itro & Tobu [NCS]", ytId: "FZa2yA7r-T0"},
         ];
         let phonkIdx = Math.floor(Math.random() * phonkTracks.length);
-        let phonkAudio = null;
+        let ytPlayer = null;
+        let ytReady = false;
         let phonkPlaying = false;
+
+        // Load YouTube IFrame API
+        (function() {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(tag);
+        })();
+
+        function onYouTubeIframeAPIReady() {
+            const container = document.createElement('div');
+            container.id = 'ytPlayerContainer';
+            container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;';
+            document.body.appendChild(container);
+            ytPlayer = new YT.Player('ytPlayerContainer', {
+                height: '1', width: '1',
+                videoId: phonkTracks[phonkIdx].ytId,
+                playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
+                events: {
+                    onReady: function() { ytReady = true; ytPlayer.setVolume(50); },
+                    onStateChange: function(e) {
+                        if (e.data === YT.PlayerState.ENDED) { phonkNext(); }
+                    }
+                }
+            });
+        }
 
         function phonkOpen() {
             document.getElementById("phonkPlayer").style.display = "inline-flex";
-            if (!phonkAudio) {
-                phonkAudio = new Audio();
-                phonkAudio.volume = 0.5;
-                phonkAudio.addEventListener("ended", phonkNext);
+            if (ytReady) {
+                ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
             }
-            phonkLoad();
-            phonkAudio.play().catch(() => {});
-            phonkPlaying = true;
-            document.getElementById("phonkPlayBtn").textContent = "⏸";
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
         }
 
         function phonkClose() {
             document.getElementById("phonkPlayer").style.display = "none";
-            if (phonkAudio) { phonkAudio.pause(); }
+            if (ytReady) ytPlayer.pauseVideo();
             phonkPlaying = false;
             document.getElementById("phonkPlayBtn").textContent = "▶";
         }
 
-        function phonkLoad() {
-            if (!phonkAudio) return;
-            phonkAudio.src = phonkTracks[phonkIdx].url;
-            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
-        }
-
         function phonkToggle() {
-            if (!phonkAudio) return;
+            if (!ytReady) return;
             if (phonkPlaying) {
-                phonkAudio.pause();
+                ytPlayer.pauseVideo();
                 phonkPlaying = false;
                 document.getElementById("phonkPlayBtn").textContent = "▶";
             } else {
-                phonkAudio.play().catch(() => {});
+                ytPlayer.playVideo();
                 phonkPlaying = true;
                 document.getElementById("phonkPlayBtn").textContent = "⏸";
             }
@@ -1751,18 +1768,26 @@
 
         function phonkNext() {
             phonkIdx = Math.floor(Math.random() * phonkTracks.length);
-            phonkLoad();
-            if (phonkPlaying) phonkAudio.play().catch(() => {});
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
+            if (ytReady) {
+                ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
+            }
         }
 
         function phonkPrev() {
             phonkIdx = (phonkIdx - 1 + phonkTracks.length) % phonkTracks.length;
-            phonkLoad();
-            if (phonkPlaying) phonkAudio.play().catch(() => {});
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
+            if (ytReady) {
+                ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
+            }
         }
 
         function phonkSetVol(v) {
-            if (phonkAudio) phonkAudio.volume = v / 100;
+            if (ytReady) ytPlayer.setVolume(parseInt(v));
         }
     </script>
 </body>
