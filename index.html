@@ -858,6 +858,7 @@
             <p style="color:#666;font-size:12px" id="homeGreeting"></p>
             <input type="text" id="bigsearch" placeholder="Search the web or type a URL..." onkeypress="if(event.key==='Enter') quickGo()">
             <div class="home-shortcuts" id="homeShortcuts"></div>
+            <div id="recentlyVisited" style="margin-top:16px;width:90%;max-width:560px"></div>
             <p style="color:#555;font-size:11px;margin-top:12px">Ctrl+T New Tab &nbsp;|&nbsp; Ctrl+Shift+N Incognito &nbsp;|&nbsp; Ctrl+H History &nbsp;|&nbsp; Ctrl+F Find</p>
         </div>
         <div class="page-info" id="pageInfo">
@@ -2232,8 +2233,32 @@
             const el = document.getElementById('homeGreeting');
             if (el) el.textContent = greet + ' — what do you want to browse?';
         }
-        updateClock(); updateGreeting();
+        updateClock(); updateGreeting(); renderRecentlyVisited();
         setInterval(updateClock, 15000);
+
+        function renderRecentlyVisited() {
+            const container = document.getElementById('recentlyVisited');
+            if (!container) return;
+            if (browsingHistory.length === 0) { container.innerHTML = ''; return; }
+            const seen = new Set();
+            const unique = browsingHistory.filter(h => {
+                const host = h.url.replace(/^https?:\/\//, '').split('/')[0];
+                if (seen.has(host)) return false;
+                seen.add(host);
+                return true;
+            }).slice(0, 6);
+            if (unique.length === 0) { container.innerHTML = ''; return; }
+            let html = '<p style="color:#666;font-size:11px;margin-bottom:6px;text-align:left">Recently Visited</p>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+            unique.forEach(h => {
+                const host = h.url.replace(/^https?:\/\//, '').split('/')[0];
+                html += '<div class="shortcut-tile" onclick="visitBookmark(\'' + h.url.replace(/'/g, "\\'") + '\')" style="min-width:80px">';
+                html += '<img src="https://www.google.com/s2/favicons?domain=' + host + '&sz=32" onerror="this.style.display=\'none\'">';
+                html += '<span>' + (h.title || host) + '</span></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
         // ==================== PAGE INFO BAR ====================
         let pageLoadStart = null;
