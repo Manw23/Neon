@@ -1640,6 +1640,25 @@
         }
 
         // ==================== INIT ====================
+        // Listen for URL updates from proxied iframes via postMessage
+        window.addEventListener("message", (e) => {
+            if (!e.data || e.data.type !== "neon-proxy-url") return;
+            const proxyHref = e.data.href;
+            const orig = extractProxyUrl(proxyHref);
+            const tab = tabs.find(t => t.iframe && t.iframe.contentWindow === e.source);
+            if (tab) {
+                tab._currentUrl = proxyHref;
+                if (orig) {
+                    tab._originalUrl = orig;
+                    const hostname = orig.replace(/^https?:\/\//, '').split('/')[0];
+                    if (tab.id === activeTabId) addressBar.value = orig;
+                    tab.title = hostname;
+                    tab.icon = 'https://www.google.com/s2/favicons?domain=' + hostname + '&sz=32';
+                    renderTabs();
+                }
+            }
+        });
+
         function init() {
             loadSaved();
             renderBookmarks();
