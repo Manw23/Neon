@@ -623,6 +623,7 @@
         <strong>NEON</strong>
         <div class="titlebar-right">
             <span id="authArea"></span>
+            <button class="auth-btn" onclick="phonkOpen()" style="background:linear-gradient(135deg,#e91e63,#9c27b0);color:#fff">🎵 Edit</button>
             <button class="customize-btn" onclick="togglePanel()">⚙ Customize</button>
         </div>
     </div>
@@ -684,46 +685,40 @@
 
     <div class="toast" id="toast"></div>
 
-    <!-- Phonk Music Player -->
+    <!-- Edit Music Player -->
     <div id="phonkPlayer" class="phonk-player" style="display:none">
         <button onclick="phonkPrev()" title="Previous">⏮</button>
         <button onclick="phonkToggle()" id="phonkPlayBtn" title="Play/Pause">▶</button>
         <button onclick="phonkNext()" title="Next">⏭</button>
-        <span id="phonkTitle" class="phonk-title">Phonk</span>
+        <span id="phonkTitle" class="phonk-title">Edit Music</span>
         <input type="range" id="phonkVolume" min="0" max="100" value="50" oninput="phonkSetVol(this.value)" title="Volume">
         <button onclick="phonkClose()" title="Close">×</button>
     </div>
-    <button id="phonkBtn" class="phonk-btn" onclick="phonkOpen()" title="Phonk Music">🎵</button>
+    <button id="phonkBtn" class="phonk-btn" onclick="phonkOpen()" title="Edit Music" style="display:none">🎵</button>
 
     <script>
         const IS_BACKEND = location.hostname.includes("tunnel") || location.port === "8001";
-        const API_URL = IS_BACKEND ? "" : "https://50536b280dca-tunnel-iuznimg9.devinapps.com";
-        const TUNNEL_USER = "user";
-        const TUNNEL_PASS = "381726b2f384fffdd3f0af715f6688e9";
+        const API_URL = IS_BACKEND ? "" : "https://user:381726b2f384fffdd3f0af715f6688e9@50536b280dca-tunnel-iuznimg9.devinapps.com";
         function apiFetch(path, opts = {}) {
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 const method = opts.method || "GET";
                 let url, sendBody = null;
 
-                if (IS_BACKEND) {
-                    url = path;
-                    xhr.open(method, url, true);
-                    if (opts.headers) {
-                        for (const [k, v] of Object.entries(opts.headers)) xhr.setRequestHeader(k, v);
-                    }
-                    sendBody = opts.body || null;
-                } else {
-                    // Cross-origin: avoid CORS preflight
-                    let p = path;
-                    if (opts.headers && opts.headers["X-Auth-Token"]) {
-                        const sep = p.includes("?") ? "&" : "?";
-                        p += sep + "_token=" + encodeURIComponent(opts.headers["X-Auth-Token"]);
-                    }
-                    url = API_URL + p;
-                    xhr.open(method, url, true, TUNNEL_USER, TUNNEL_PASS);
-                    xhr.withCredentials = true;
-                    if (opts.body) {
+                let p = path;
+                if (!IS_BACKEND && opts.headers && opts.headers["X-Auth-Token"]) {
+                    const sep = p.includes("?") ? "&" : "?";
+                    p += sep + "_token=" + encodeURIComponent(opts.headers["X-Auth-Token"]);
+                }
+                url = API_URL + p;
+                xhr.open(method, url, true);
+                if (IS_BACKEND && opts.headers) {
+                    for (const [k, v] of Object.entries(opts.headers)) xhr.setRequestHeader(k, v);
+                }
+                if (opts.body) {
+                    if (IS_BACKEND) {
+                        sendBody = opts.body;
+                    } else {
                         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
                         try {
                             const data = JSON.parse(opts.body);
@@ -1148,21 +1143,18 @@
             const btn = document.querySelector('[onclick="refresh()"]');
             if (btn) btn.classList.add('spinning');
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
-            // Try to get the iframe's actual current URL (works for same-origin)
-            let currentUrl;
-            try {
-                currentUrl = tab.iframe.contentWindow.location.href;
-                if (currentUrl === "about:blank") throw 0;
-            } catch (e) {
-                // Cross-origin: fall back to what's in the address bar, then nav history
+            // Reload the iframe's current content by re-setting its src
+            const curSrc = tab.iframe.src;
+            if (curSrc && curSrc !== "about:blank") {
+                tab.iframe.src = curSrc;
+            } else {
                 const barVal = addressBar.value.trim();
                 if (barVal && barVal.startsWith("http")) {
-                    currentUrl = barVal;
-                } else {
-                    currentUrl = (tab.pos >= 0 && tab.pos < tab.navHistory.length) ? tab.navHistory[tab.pos] : tab.iframe.src;
+                    tab.iframe.src = proxyUrl(barVal);
+                } else if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
+                    tab.iframe.src = proxyUrl(tab.navHistory[tab.pos]);
                 }
             }
-            tab.iframe.src = proxyUrl(currentUrl);
         }
 
         function goHome() {
@@ -1673,14 +1665,14 @@
 
         // ==================== PHONK MUSIC PLAYER ====================
         const phonkTracks = [
-            {title: "MURDER IN MY MIND", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
-            {title: "DRIFT PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
-            {title: "BRAZILIAN PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
-            {title: "KORDHELL - MURDER", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
-            {title: "FUNK OVERDRIVE", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
-            {title: "CLOSE EYES", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
-            {title: "METAMORPHOSIS", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
-            {title: "SHADOW PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+            {title: "KORDHELL - MURDER IN MY MIND", url: "https://cdn.pixabay.com/audio/2022/10/14/audio_2be69e62ad.mp3"},
+            {title: "DVRST - CLOSE EYES", url: "https://cdn.pixabay.com/audio/2022/05/16/audio_460add4ef3.mp3"},
+            {title: "PHONK DRIFT EDIT", url: "https://cdn.pixabay.com/audio/2023/07/14/audio_e4e73e4b6a.mp3"},
+            {title: "BRAZILIAN PHONK EDIT", url: "https://cdn.pixabay.com/audio/2023/09/21/audio_8d2e4ef88f.mp3"},
+            {title: "AGGRESSIVE PHONK BEAT", url: "https://cdn.pixabay.com/audio/2023/10/18/audio_8bce0f8e1e.mp3"},
+            {title: "DARK PHONK EDIT", url: "https://cdn.pixabay.com/audio/2024/01/10/audio_b07cf6d39a.mp3"},
+            {title: "FUNK PHONK BASS", url: "https://cdn.pixabay.com/audio/2023/05/02/audio_2f4edfbe30.mp3"},
+            {title: "METAMORPHOSIS EDIT", url: "https://cdn.pixabay.com/audio/2022/11/22/audio_0a2e96bd26.mp3"},
         ];
         let phonkIdx = Math.floor(Math.random() * phonkTracks.length);
         let phonkAudio = null;
