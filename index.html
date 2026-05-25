@@ -811,6 +811,15 @@
 
     <div class="panel" id="panel">
         <h4>Customize NEON</h4>
+        <label>Theme Presets</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button onclick="applyTheme('dark')" style="width:auto;padding:4px 10px;font-size:11px;background:#1a1a1a;color:#ccc;border:1px solid #444;margin:0">🌙 Dark</button>
+            <button onclick="applyTheme('midnight')" style="width:auto;padding:4px 10px;font-size:11px;background:#0a0a2e;color:#7b68ee;border:1px solid #333;margin:0">🌌 Midnight</button>
+            <button onclick="applyTheme('ocean')" style="width:auto;padding:4px 10px;font-size:11px;background:#0a2a3a;color:#00d4ff;border:1px solid #0a4a5a;margin:0">🌊 Ocean</button>
+            <button onclick="applyTheme('sunset')" style="width:auto;padding:4px 10px;font-size:11px;background:#2a1a0a;color:#ff6b35;border:1px solid #4a2a0a;margin:0">🌅 Sunset</button>
+            <button onclick="applyTheme('forest')" style="width:auto;padding:4px 10px;font-size:11px;background:#0a2a0a;color:#4caf50;border:1px solid #1a3a1a;margin:0">🌲 Forest</button>
+            <button onclick="applyTheme('rose')" style="width:auto;padding:4px 10px;font-size:11px;background:#2a0a1a;color:#ff69b4;border:1px solid #4a1a2a;margin:0">🌸 Rose</button>
+        </div>
         <label>Title Bar Color</label>
         <input type="color" id="titlebarColor" value="#1a1a1a" oninput="updateColors()">
         <label>Toolbar Color</label>
@@ -1472,7 +1481,42 @@
             localStorage.removeItem('neon_titlebar');
             localStorage.removeItem('neon_toolbar');
             localStorage.removeItem('neon_bg');
+            localStorage.removeItem('neon_theme');
             location.reload();
+        }
+
+        const THEMES = {
+            dark: { titlebar: '#1a1a1a', toolbar: '#1a1a1a', accent: '#00aaff', bg: '#0f0f0f' },
+            midnight: { titlebar: '#0a0a2e', toolbar: '#0f0f3a', accent: '#7b68ee', bg: '#050520' },
+            ocean: { titlebar: '#0a2a3a', toolbar: '#0a3040', accent: '#00d4ff', bg: '#051a25' },
+            sunset: { titlebar: '#2a1a0a', toolbar: '#301f0f', accent: '#ff6b35', bg: '#1a0a00' },
+            forest: { titlebar: '#0a2a0a', toolbar: '#0f300f', accent: '#4caf50', bg: '#051a05' },
+            rose: { titlebar: '#2a0a1a', toolbar: '#300f1f', accent: '#ff69b4', bg: '#1a0510' },
+        };
+        function applyTheme(name) {
+            const t = THEMES[name];
+            if (!t) return;
+            document.documentElement.style.setProperty('--titlebar-bg', t.titlebar);
+            document.documentElement.style.setProperty('--toolbar-bg', t.toolbar);
+            document.documentElement.style.setProperty('--accent', t.accent);
+            document.documentElement.style.setProperty('--accent-hover', t.accent + 'cc');
+            document.documentElement.style.setProperty('--bg-dark', t.bg);
+            document.getElementById('titlebarColor').value = t.titlebar;
+            document.getElementById('toolbarColor').value = t.toolbar;
+            localStorage.setItem('neon_titlebar', t.titlebar);
+            localStorage.setItem('neon_toolbar', t.toolbar);
+            localStorage.setItem('neon_theme', name);
+            showToast('Theme: ' + name.charAt(0).toUpperCase() + name.slice(1));
+            syncToCloud();
+        }
+        function loadTheme() {
+            const name = localStorage.getItem('neon_theme');
+            if (name && THEMES[name]) {
+                const t = THEMES[name];
+                document.documentElement.style.setProperty('--accent', t.accent);
+                document.documentElement.style.setProperty('--accent-hover', t.accent + 'cc');
+                document.documentElement.style.setProperty('--bg-dark', t.bg);
+            }
         }
 
         // ==================== AUTH ====================
@@ -1825,6 +1869,7 @@
             if (tb) { document.documentElement.style.setProperty('--toolbar-bg', tb); document.getElementById("toolbarColor").value = tb; }
             if (bg) mainArea.style.backgroundImage = `url('${bg}')`;
             document.getElementById("proxyToggle").checked = useProxy;
+            loadTheme();
         }
 
         // ==================== SEARCH SUGGESTIONS ====================
