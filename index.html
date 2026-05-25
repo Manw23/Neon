@@ -584,12 +584,61 @@
         .tab-context-menu button:hover { background: var(--surface-hover); color: #fff; }
         .tab-context-menu .divider { height: 1px; background: #444; margin: 4px 0; }
 
+        /* Zoom Controls */
+        .zoom-controls {
+            display: inline-flex; align-items: center; gap: 2px;
+            background: var(--surface); border-radius: 6px; padding: 2px;
+        }
+        .zoom-controls button {
+            background: none; border: none; color: #ccc; font-size: 14px;
+            cursor: pointer; padding: 4px 8px; border-radius: 4px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .zoom-controls button:hover { background: var(--surface-hover); color: #fff; }
+        .zoom-controls span { color: #aaa; font-size: 11px; min-width: 36px; text-align: center; }
+
+        /* Pinned Tab */
+        .tab.pinned { min-width: unset; max-width: 42px; padding: 6px 10px; }
+        .tab.pinned .tab-title, .tab.pinned .tab-close { display: none; }
+
+        /* Incognito Tab */
+        .tab.incognito { background: #2d1a3a; }
+        .tab.incognito.active { background: #3d2a4a; border-bottom-color: #9c27b0; }
+
+        /* Clock */
+        .clock { color: #888; font-size: 11px; font-family: monospace; margin-right: 4px; }
+
+        /* History Panel */
+        .history-panel {
+            position: absolute; top: 40px; left: 15px;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 12px;
+            padding: 16px; width: 320px; max-height: 400px; overflow-y: auto;
+            z-index: 999; display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .history-panel.show { display: block; }
+        .history-panel h4 { color: var(--accent); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .history-panel h4 button { background: var(--danger); color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .history-item {
+            display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+            border-radius: 6px; cursor: pointer; font-size: 12px; color: #ccc;
+            transition: background 0.15s;
+        }
+        .history-item:hover { background: var(--surface-hover); }
+        .history-item img { width: 16px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+        .history-item .hist-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .history-item .hist-time { color: #666; font-size: 10px; flex-shrink: 0; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .real-tab-btn span { display: none; }
             .real-tab-btn { padding: 9px 10px; }
             .go-btn { padding: 9px 14px; }
             .toolbar { padding: 6px 8px; gap: 4px; }
+            .zoom-controls { display: none; }
+            .clock { display: none; }
+            .titlebar { padding: 4px 8px; gap: 6px; }
+            .phonk-title { max-width: 60px; }
         }
         .phonk-player {
             display: inline-flex; align-items: center; gap: 4px;
@@ -611,6 +660,7 @@
 
     <div class="titlebar">
         <strong>NEON</strong>
+        <span class="clock" id="clock"></span>
         <div class="titlebar-right">
             <div id="phonkPlayer" class="phonk-player" style="display:none">
                 <button onclick="phonkPrev()" title="Previous">⏮</button>
@@ -644,7 +694,13 @@
         </div>
 
         <button class="star-btn" onclick="starCurrent()" title="Bookmark this page">★</button>
+        <div class="zoom-controls">
+            <button onclick="zoomOut()" title="Zoom Out">−</button>
+            <span id="zoomLevel">100%</span>
+            <button onclick="zoomIn()" title="Zoom In">+</button>
+        </div>
         <button class="go-btn" onclick="go()">Go</button>
+        <button class="nav-btn" onclick="toggleHistory()" title="History" style="font-size:14px">📜</button>
         <button class="real-tab-btn" onclick="openRealTab()" title="Open in a real browser tab">🔗 New Tab</button>
     </div>
 
@@ -676,6 +732,7 @@
     </div>
 
     <div class="tab-context-menu" id="tabCtxMenu"></div>
+    <div class="history-panel" id="historyPanel"></div>
 
     <div class="modal-overlay" id="authModal">
         <div class="modal" id="authModalContent"></div>
@@ -844,6 +901,7 @@
             const hostname = url.replace(/^https?:\/\//, '').split('/')[0] || "New Tab";
             tab.title = hostname;
             tab.icon = "https://www.google.com/s2/favicons?domain=" + hostname + "&sz=32";
+            if (!tab.incognito) addToHistory(url, hostname);
 
             home.style.display = "none";
             tab.iframe.style.display = "block";
@@ -863,7 +921,7 @@
 
             tabs.forEach((tab, idx) => {
                 const div = document.createElement("div");
-                div.className = "tab" + (tab.id === activeTabId ? " active" : "");
+                div.className = "tab" + (tab.id === activeTabId ? " active" : "") + (tab.pinned ? " pinned" : "") + (tab.incognito ? " incognito" : "");
                 div.draggable = true;
                 div.dataset.tabIdx = idx;
                 div.onclick = () => switchTab(tab.id);
@@ -931,12 +989,22 @@
         function showTabContextMenu(e, tabId) {
             const menu = document.getElementById("tabCtxMenu");
             menu.innerHTML = '';
+            const t = tabs.find(t2 => t2.id === tabId);
             const items = [
-                { label: 'Duplicate Tab', action: () => { const t = tabs.find(t2 => t2.id === tabId); if (t && t.pos >= 0) createTab(t.navHistory[t.pos]); }},
+                { label: (t && t.pinned) ? '📌 Unpin Tab' : '📌 Pin Tab', action: () => pinTab(tabId) },
+                { label: 'Duplicate Tab', action: () => { if (t && t.pos >= 0) createTab(t.navHistory[t.pos]); }},
+                { label: '🕶 New Incognito Tab', action: () => createIncognitoTab() },
+                { label: 'divider' },
                 { label: 'Close Tab', action: () => closeTab(tabId) },
-                { label: 'Close Other Tabs', action: () => { tabs.filter(t => t.id !== tabId).forEach(t => closeTab(t.id)); }},
+                { label: 'Close Other Tabs', action: () => { tabs.filter(t2 => t2.id !== tabId).forEach(t2 => closeTab(t2.id)); }},
             ];
             items.forEach(item => {
+                if (item.label === 'divider') {
+                    const div = document.createElement('div');
+                    div.className = 'divider';
+                    menu.appendChild(div);
+                    return;
+                }
                 const btn = document.createElement('button');
                 btn.textContent = item.label;
                 btn.onclick = () => { item.action(); menu.classList.remove('show'); };
@@ -1235,6 +1303,11 @@
             if (e.ctrlKey && e.key === "w") { e.preventDefault(); if (activeTabId !== null) closeTab(activeTabId); }
             if (e.ctrlKey && e.key === "l") { e.preventDefault(); addressBar.select(); addressBar.focus(); }
             if (e.ctrlKey && e.key === "k") { e.preventDefault(); addressBar.value = ""; addressBar.focus(); }
+            if (e.ctrlKey && e.key === "=") { e.preventDefault(); zoomIn(); }
+            if (e.ctrlKey && e.key === "-") { e.preventDefault(); zoomOut(); }
+            if (e.ctrlKey && e.key === "0") { e.preventDefault(); currentZoom = 100; applyZoom(); }
+            if (e.ctrlKey && e.shiftKey && e.key === "N") { e.preventDefault(); createIncognitoTab(); }
+            if (e.ctrlKey && e.key === "h") { e.preventDefault(); toggleHistory(); }
         });
         document.addEventListener("keyup", (e) => { delete _keysHeld[e.key.toLowerCase()]; });
 
@@ -1637,6 +1710,112 @@
             if (tb) { document.documentElement.style.setProperty('--toolbar-bg', tb); document.getElementById("toolbarColor").value = tb; }
             if (bg) mainArea.style.backgroundImage = `url('${bg}')`;
             document.getElementById("proxyToggle").checked = useProxy;
+        }
+
+        // ==================== CLOCK ====================
+        function updateClock() {
+            const now = new Date();
+            const h = now.getHours() % 12 || 12;
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const ap = now.getHours() >= 12 ? 'PM' : 'AM';
+            document.getElementById('clock').textContent = h + ':' + m + ' ' + ap;
+        }
+        updateClock();
+        setInterval(updateClock, 15000);
+
+        // ==================== ZOOM ====================
+        let currentZoom = 100;
+        function zoomIn() {
+            if (currentZoom >= 200) return;
+            currentZoom += 10;
+            applyZoom();
+        }
+        function zoomOut() {
+            if (currentZoom <= 30) return;
+            currentZoom -= 10;
+            applyZoom();
+        }
+        function applyZoom() {
+            document.getElementById('zoomLevel').textContent = currentZoom + '%';
+            const tab = getActiveTab();
+            if (tab && tab.iframe) {
+                tab.iframe.style.transform = 'scale(' + (currentZoom / 100) + ')';
+                tab.iframe.style.transformOrigin = 'top left';
+                tab.iframe.style.width = (100 / (currentZoom / 100)) + '%';
+                tab.iframe.style.height = (100 / (currentZoom / 100)) + '%';
+            }
+        }
+
+        // ==================== HISTORY ====================
+        let browsingHistory = JSON.parse(localStorage.getItem('neon_history') || '[]');
+        function addToHistory(url, title) {
+            if (!url || url === 'about:blank') return;
+            browsingHistory.unshift({ url, title: title || url, time: Date.now() });
+            if (browsingHistory.length > 100) browsingHistory = browsingHistory.slice(0, 100);
+            localStorage.setItem('neon_history', JSON.stringify(browsingHistory));
+        }
+        function toggleHistory() {
+            const panel = document.getElementById('historyPanel');
+            if (panel.classList.contains('show')) { panel.classList.remove('show'); return; }
+            renderHistory();
+            panel.classList.add('show');
+        }
+        function renderHistory() {
+            const panel = document.getElementById('historyPanel');
+            let html = '<h4>History <button onclick="clearHistory()">Clear All</button></h4>';
+            if (browsingHistory.length === 0) {
+                html += '<p style="color:#666;font-size:12px">No history yet</p>';
+            } else {
+                browsingHistory.slice(0, 50).forEach(h => {
+                    const hostname = h.url.replace(/^https?:\/\//, '').split('/')[0];
+                    const time = new Date(h.time);
+                    const timeStr = time.getHours() % 12 || 12;
+                    const mins = String(time.getMinutes()).padStart(2, '0');
+                    const ap = time.getHours() >= 12 ? 'PM' : 'AM';
+                    html += '<div class="history-item" onclick="createTab(\'' + h.url.replace(/'/g, "\\'") + '\')">';
+                    html += '<img src="https://www.google.com/s2/favicons?domain=' + hostname + '&sz=16" onerror="this.style.display=\'none\'">';
+                    html += '<span class="hist-url">' + (h.title || hostname) + '</span>';
+                    html += '<span class="hist-time">' + timeStr + ':' + mins + ' ' + ap + '</span>';
+                    html += '</div>';
+                });
+            }
+            panel.innerHTML = html;
+        }
+        function clearHistory() {
+            browsingHistory = [];
+            localStorage.removeItem('neon_history');
+            renderHistory();
+            showToast('History cleared');
+        }
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('historyPanel');
+            if (panel.classList.contains('show') && !panel.contains(e.target) && !e.target.closest('[onclick*="toggleHistory"]')) {
+                panel.classList.remove('show');
+            }
+        });
+
+        // ==================== TAB PINNING ====================
+        function pinTab(tabId) {
+            const tab = tabs.find(t => t.id === tabId);
+            if (tab) {
+                tab.pinned = !tab.pinned;
+                if (tab.pinned) {
+                    const idx = tabs.indexOf(tab);
+                    tabs.splice(idx, 1);
+                    const firstUnpinned = tabs.findIndex(t => !t.pinned);
+                    tabs.splice(firstUnpinned >= 0 ? firstUnpinned : tabs.length, 0, tab);
+                }
+                renderTabs();
+                showToast(tab.pinned ? 'Tab pinned' : 'Tab unpinned');
+            }
+        }
+
+        // ==================== INCOGNITO TAB ====================
+        function createIncognitoTab() {
+            const tab = createTab();
+            tab.incognito = true;
+            renderTabs();
+            showToast('🕶 Incognito tab — no history saved');
         }
 
         // ==================== INIT ====================
