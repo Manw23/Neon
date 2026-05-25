@@ -925,6 +925,7 @@
             <div class="shortcut-row"><span>Back</span><kbd>Alt+←</kbd></div>
             <div class="shortcut-row"><span>Forward</span><kbd>Alt+→</kbd></div>
             <div class="shortcut-row"><span>Home</span><kbd>Alt+Home</kbd></div>
+            <div class="shortcut-row"><span>Switch to Tab 1-9</span><kbd>Ctrl+1-9</kbd></div>
             <div class="shortcut-row"><span>Reopen Closed Tab</span><kbd>Ctrl+Shift+T</kbd></div>
             <div class="shortcut-row"><span>Show Shortcuts</span><kbd>Ctrl+/</kbd></div>
             <div class="shortcut-row"><span>Gmail</span><kbd>T+E</kbd></div>
@@ -1038,11 +1039,15 @@
                 tab.iframe.style.display = "block";
                 home.style.display = "none";
                 addressBar.value = tab.navHistory[tab.pos];
+                document.title = tab.title + " — NEON";
             } else {
                 home.style.display = "flex";
                 addressBar.value = "";
                 document.getElementById("bigsearch").value = "";
+                document.title = "NEON";
             }
+            currentZoom = 100;
+            applyZoom();
             renderTabs();
         }
 
@@ -1666,6 +1671,11 @@
             if (e.ctrlKey && e.key === "h") { e.preventDefault(); toggleHistory(); }
             if (e.ctrlKey && e.key === "f") { e.preventDefault(); toggleFindBar(); }
             if (e.ctrlKey && e.shiftKey && e.key === "T") { e.preventDefault(); reopenClosedTab(); }
+            if (e.ctrlKey && e.key >= "1" && e.key <= "9") {
+                e.preventDefault();
+                const idx = parseInt(e.key) - 1;
+                if (idx < tabs.length) switchTab(tabs[idx].id);
+            }
             if (e.ctrlKey && e.key === "/") { e.preventDefault(); document.getElementById('shortcutsOverlay').classList.toggle('show'); }
             if (e.key === "Escape") {
                 document.getElementById('shortcutsOverlay').classList.remove('show');
