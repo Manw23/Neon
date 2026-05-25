@@ -1115,16 +1115,19 @@
             const btn = document.querySelector('[onclick="refresh()"]');
             if (btn) btn.classList.add('spinning');
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
-            // Reload the iframe's current content by re-setting its src
-            const curSrc = tab.iframe.src;
-            if (curSrc && curSrc !== "about:blank") {
-                tab.iframe.src = curSrc;
-            } else {
-                const barVal = addressBar.value.trim();
-                if (barVal && barVal.startsWith("http")) {
-                    tab.iframe.src = proxyUrl(barVal);
-                } else if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
-                    tab.iframe.src = proxyUrl(tab.navHistory[tab.pos]);
+            try {
+                tab.iframe.contentWindow.location.reload();
+            } catch (e) {
+                const curSrc = tab.iframe.src;
+                if (curSrc && curSrc !== "about:blank") {
+                    tab.iframe.src = curSrc;
+                } else {
+                    const barVal = addressBar.value.trim();
+                    if (barVal && barVal.startsWith("http")) {
+                        tab.iframe.src = proxyUrl(barVal);
+                    } else if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
+                        tab.iframe.src = proxyUrl(tab.navHistory[tab.pos]);
+                    }
                 }
             }
         }
@@ -1355,8 +1358,14 @@
             const picUrl = currentUser.profile_pic || localStorage.getItem('neon_profile_pic') || '';
             content.innerHTML = `
                 <h3>Profile Picture</h3>
-                <p style="color:#aaa;font-size:12px;margin-bottom:8px">Paste an image URL for your profile picture</p>
-                <input type="url" id="profilePicUrl" placeholder="https://example.com/my-photo.jpg" value="${picUrl}">
+                <p style="color:#aaa;font-size:12px;margin-bottom:8px">Upload a photo or paste an image URL</p>
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <label class="modal-btn" style="flex:1;text-align:center;cursor:pointer;margin:0">
+                        📁 Upload Photo
+                        <input type="file" id="profilePicFile" accept="image/*" style="display:none" onchange="handleProfilePicUpload(event)">
+                    </label>
+                </div>
+                <input type="url" id="profilePicUrl" placeholder="Or paste image URL here..." value="${picUrl}">
                 <div id="authError" class="error-msg"></div>
                 <div id="picPreviewArea" style="text-align:center;margin:10px 0">${picUrl ? '<img src="' + picUrl + '" class="profile-pic-preview" onerror="this.style.display=\'none\'">' : ''}</div>
                 <button class="modal-btn" onclick="saveProfilePic()">Save</button>
@@ -1372,7 +1381,23 @@
                     area.innerHTML = '';
                 }
             });
-            setTimeout(() => input.focus(), 100);
+        }
+
+        function handleProfilePicUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 512 * 1024) {
+                showToast("Image too large — max 512KB");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const dataUrl = ev.target.result;
+                document.getElementById('profilePicUrl').value = dataUrl;
+                document.getElementById('picPreviewArea').innerHTML = '<img src="' + dataUrl + '" class="profile-pic-preview">';
+                showToast("Photo loaded! Click Save to apply.");
+            };
+            reader.readAsDataURL(file);
         }
 
         async function saveProfilePic() {
