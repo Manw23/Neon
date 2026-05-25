@@ -689,6 +689,22 @@
             border-radius: 0 0 12px 12px; font-family: system-ui, sans-serif;
         }
 
+        /* Split Screen */
+        .main.split-view { display: flex; flex-direction: row; }
+        .main.split-view iframe { position: relative; inset: unset; }
+        .split-divider { width: 4px; background: var(--accent); cursor: col-resize; flex-shrink: 0; }
+        .split-divider:hover { background: var(--accent-hover); }
+
+        /* Page Info Bar */
+        .page-info {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 24px;
+            background: rgba(26,26,26,0.95); border-top: 1px solid #333;
+            display: flex; align-items: center; padding: 0 12px;
+            font-size: 11px; color: #888; z-index: 8;
+            gap: 12px; opacity: 0; transition: opacity 0.2s;
+        }
+        .main:hover .page-info { opacity: 1; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .real-tab-btn span { display: none; }
@@ -699,6 +715,13 @@
             .clock { display: none; }
             .titlebar { padding: 4px 8px; gap: 6px; }
             .phonk-title { max-width: 60px; }
+            .notes-panel { width: 250px; bottom: 10px; right: 10px; }
+        }
+        @media (max-width: 480px) {
+            .titlebar strong { font-size: 13px; }
+            .toolbar { flex-wrap: wrap; }
+            .tab { min-width: 60px; padding: 6px 8px; font-size: 11px; }
+            .nav-btn { width: 28px; height: 28px; font-size: 14px; }
         }
         .phonk-player {
             display: inline-flex; align-items: center; gap: 4px;
@@ -775,9 +798,14 @@
         </div>
         <div id="home" class="home">
             <h1>NEON</h1>
-            <p>↑ Your bookmarks are above</p>
+            <p style="color:#666;font-size:12px" id="homeGreeting"></p>
             <input type="text" id="bigsearch" placeholder="Search the web or type a URL..." onkeypress="if(event.key==='Enter') quickGo()">
             <div class="home-shortcuts" id="homeShortcuts"></div>
+            <p style="color:#555;font-size:11px;margin-top:12px">Ctrl+T New Tab &nbsp;|&nbsp; Ctrl+Shift+N Incognito &nbsp;|&nbsp; Ctrl+H History &nbsp;|&nbsp; Ctrl+F Find</p>
+        </div>
+        <div class="page-info" id="pageInfo">
+            <span id="pageInfoUrl"></span>
+            <span id="pageInfoTime"></span>
         </div>
     </div>
 
@@ -1174,7 +1202,17 @@
         function renderHomeShortcuts() {
             const container = document.getElementById("homeShortcuts");
             container.innerHTML = "";
-            bookmarks.forEach(bm => {
+            const defaultTiles = [
+                { name: "YouTube", url: "https://youtube.com", icon: "https://www.google.com/s2/favicons?domain=youtube.com&sz=32" },
+                { name: "Wikipedia", url: "https://wikipedia.org", icon: "https://www.google.com/s2/favicons?domain=wikipedia.org&sz=32" },
+                { name: "Reddit", url: "https://reddit.com", icon: "https://www.google.com/s2/favicons?domain=reddit.com&sz=32" },
+                { name: "SilverGames", url: "https://silvergames.com", icon: "https://www.google.com/s2/favicons?domain=silvergames.com&sz=32" },
+            ];
+            const allTiles = [...bookmarks.map(b => ({name: b.name, url: b.url, icon: b.icon})), ...defaultTiles];
+            const seen = new Set();
+            allTiles.forEach(bm => {
+                if (seen.has(bm.url)) return;
+                seen.add(bm.url);
                 const tile = document.createElement("div");
                 tile.className = "shortcut-tile";
                 tile.onclick = () => visitBookmark(bm.url);
@@ -1329,6 +1367,7 @@
         // ==================== LOADING ====================
         function showLoading() {
             loadingBar.style.display = "block";
+            pageLoadStart = Date.now();
         }
 
         // ==================== OPEN IN REAL TAB ====================
@@ -1878,7 +1917,7 @@
             localStorage.setItem('neon_notes', document.getElementById('notesText').value);
         }
 
-        // ==================== CLOCK ====================
+        // ==================== CLOCK & GREETING ====================
         function updateClock() {
             const now = new Date();
             const h = now.getHours() % 12 || 12;
@@ -1886,8 +1925,31 @@
             const ap = now.getHours() >= 12 ? 'PM' : 'AM';
             document.getElementById('clock').textContent = h + ':' + m + ' ' + ap;
         }
-        updateClock();
+        function updateGreeting() {
+            const hr = new Date().getHours();
+            let greet = 'Good evening';
+            if (hr < 12) greet = 'Good morning';
+            else if (hr < 17) greet = 'Good afternoon';
+            const el = document.getElementById('homeGreeting');
+            if (el) el.textContent = greet + ' — what do you want to browse?';
+        }
+        updateClock(); updateGreeting();
         setInterval(updateClock, 15000);
+
+        // ==================== PAGE INFO BAR ====================
+        let pageLoadStart = null;
+        function updatePageInfo() {
+            const tab = getActiveTab();
+            const urlEl = document.getElementById('pageInfoUrl');
+            const timeEl = document.getElementById('pageInfoTime');
+            if (!tab || tab.pos < 0) { urlEl.textContent = ''; timeEl.textContent = ''; return; }
+            urlEl.textContent = tab._originalUrl || tab.navHistory[tab.pos] || '';
+            if (pageLoadStart) {
+                const elapsed = ((Date.now() - pageLoadStart) / 1000).toFixed(1);
+                timeEl.textContent = 'Loaded in ' + elapsed + 's';
+            }
+        }
+        setInterval(updatePageInfo, 2000);
 
         // ==================== ZOOM ====================
         let currentZoom = 100;
