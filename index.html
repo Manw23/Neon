@@ -830,6 +830,7 @@
         <button class="nav-btn" onclick="goHome()" title="Home">⌂</button>
 
         <div class="search-container">
+            <span id="securityIcon" style="position:absolute;left:12px;z-index:2;font-size:12px;color:#4caf50;display:none">🔒</span>
             <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter'){go();hideSuggestions()}" oninput="showSuggestions()" onfocus="showSuggestions()">
             <button class="clear-btn" onclick="clearAddress()" title="Clear">×</button>
             <div class="suggestions" id="suggestions"></div>
@@ -843,6 +844,7 @@
         </div>
         <button class="go-btn" onclick="go()">Go</button>
         <button class="nav-btn" onclick="toggleHistory()" title="History" style="font-size:14px">📜</button>
+        <button class="nav-btn" onclick="toggleFullscreen()" title="Fullscreen (F11)" style="font-size:14px">⛶</button>
         <button class="real-tab-btn" onclick="openRealTab()" title="Open in a real browser tab">🔗 New Tab</button>
     </div>
 
@@ -1041,11 +1043,13 @@
                 home.style.display = "none";
                 addressBar.value = tab.navHistory[tab.pos];
                 document.title = tab.title + " — NEON";
+                updateSecurityIcon(tab.navHistory[tab.pos]);
             } else {
                 home.style.display = "flex";
                 addressBar.value = "";
                 document.getElementById("bigsearch").value = "";
                 document.title = "NEON";
+                updateSecurityIcon('');
             }
             currentZoom = 100;
             applyZoom();
@@ -1100,6 +1104,17 @@
                 if (u.pathname === '/proxy' && u.searchParams.has('url')) return u.searchParams.get('url');
             } catch(e) {}
             return null;
+        }
+
+        function updateSecurityIcon(url) {
+            const icon = document.getElementById('securityIcon');
+            if (url && url.startsWith('https://')) {
+                icon.style.display = 'inline';
+                addressBar.style.paddingLeft = '30px';
+            } else {
+                icon.style.display = 'none';
+                addressBar.style.paddingLeft = '16px';
+            }
         }
 
         function navigateInTab(tab, url) {
@@ -1660,6 +1675,7 @@
             if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); forward(); }
             if (e.altKey && e.key === "Home") { e.preventDefault(); goHome(); }
             if (e.key === "F5") { e.preventDefault(); refresh(); }
+            if (e.key === "F11") { e.preventDefault(); toggleFullscreen(); }
             if (e.key === "Escape" && panel.style.display === "block") { panel.style.display = "none"; }
             if (e.ctrlKey && e.key === "t") { e.preventDefault(); createTab(); }
             if (e.ctrlKey && e.key === "w") { e.preventDefault(); if (activeTabId !== null) closeTab(activeTabId); }
@@ -2215,6 +2231,15 @@
         }
         function saveNotes() {
             localStorage.setItem('neon_notes', document.getElementById('notesText').value);
+        }
+
+        // ==================== FULLSCREEN ====================
+        function toggleFullscreen() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
         }
 
         // ==================== CLOCK & GREETING ====================
