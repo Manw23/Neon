@@ -629,6 +629,66 @@
         .history-item .hist-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
         .history-item .hist-time { color: #666; font-size: 10px; flex-shrink: 0; }
 
+        /* Search Suggestions */
+        .suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 12px;
+            max-height: 260px; overflow-y: auto; z-index: 100;
+            display: none; margin-top: 4px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .suggestions.show { display: block; }
+        .suggestion {
+            padding: 8px 16px; cursor: pointer; font-size: 13px; color: #ccc;
+            display: flex; align-items: center; gap: 8px;
+            transition: background 0.1s;
+        }
+        .suggestion:first-child { border-radius: 12px 12px 0 0; }
+        .suggestion:last-child { border-radius: 0 0 12px 12px; }
+        .suggestion:hover, .suggestion.selected { background: var(--surface-hover); color: #fff; }
+        .suggestion img { width: 14px; height: 14px; border-radius: 2px; }
+        .suggestion .sug-type { color: #666; font-size: 10px; margin-left: auto; }
+
+        /* Find Bar */
+        .find-bar {
+            position: absolute; top: 8px; right: 16px;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 8px;
+            padding: 6px 10px; display: none; align-items: center; gap: 6px;
+            z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        .find-bar.show { display: flex; }
+        .find-bar input {
+            background: #111; border: 1px solid #444; border-radius: 4px;
+            color: white; padding: 4px 8px; font-size: 13px; outline: none; width: 200px;
+        }
+        .find-bar input:focus { border-color: var(--accent); }
+        .find-bar button {
+            background: var(--surface); border: none; color: #ccc; padding: 4px 8px;
+            border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .find-bar button:hover { background: var(--surface-hover); color: #fff; }
+        .find-bar span { color: #888; font-size: 11px; }
+
+        /* Notes Panel */
+        .notes-panel {
+            position: absolute; bottom: 20px; right: 20px;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 12px;
+            width: 300px; z-index: 999; display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .notes-panel.show { display: block; }
+        .notes-panel-header {
+            padding: 10px 14px; border-bottom: 1px solid #444;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .notes-panel-header span { color: var(--accent); font-weight: bold; font-size: 13px; }
+        .notes-panel-header button { background: none; border: none; color: #888; font-size: 16px; cursor: pointer; }
+        .notes-panel textarea {
+            width: 100%; height: 200px; background: #111; border: none;
+            color: #ccc; padding: 12px; font-size: 13px; resize: none; outline: none;
+            border-radius: 0 0 12px 12px; font-family: system-ui, sans-serif;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .real-tab-btn span { display: none; }
@@ -671,6 +731,7 @@
                 <button onclick="phonkClose()" title="Close">×</button>
             </div>
             <button class="auth-btn" onclick="phonkOpen()" style="background:linear-gradient(135deg,#e91e63,#9c27b0);color:#fff">🎵 Edit</button>
+            <button class="auth-btn" onclick="toggleNotes()" title="Quick Notes">📝</button>
             <span id="authArea"></span>
             <button class="customize-btn" onclick="togglePanel()">⚙ Customize</button>
         </div>
@@ -689,8 +750,9 @@
         <button class="nav-btn" onclick="goHome()" title="Home">⌂</button>
 
         <div class="search-container">
-            <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter') go()">
+            <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter'){go();hideSuggestions()}" oninput="showSuggestions()" onfocus="showSuggestions()">
             <button class="clear-btn" onclick="clearAddress()" title="Clear">×</button>
+            <div class="suggestions" id="suggestions"></div>
         </div>
 
         <button class="star-btn" onclick="starCurrent()" title="Bookmark this page">★</button>
@@ -706,6 +768,11 @@
 
     <div class="main" id="main">
         <div class="loading-bar" id="loadingBar"></div>
+        <div class="find-bar" id="findBar">
+            <input type="text" id="findInput" placeholder="Find on page..." oninput="findOnPage()">
+            <span id="findCount"></span>
+            <button onclick="closeFindBar()">×</button>
+        </div>
         <div id="home" class="home">
             <h1>NEON</h1>
             <p>↑ Your bookmarks are above</p>
@@ -736,6 +803,14 @@
 
     <div class="modal-overlay" id="authModal">
         <div class="modal" id="authModalContent"></div>
+    </div>
+
+    <div class="notes-panel" id="notesPanel">
+        <div class="notes-panel-header">
+            <span>📝 Quick Notes</span>
+            <button onclick="toggleNotes()">×</button>
+        </div>
+        <textarea id="notesText" placeholder="Type your notes here..." oninput="saveNotes()"></textarea>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -1308,6 +1383,7 @@
             if (e.ctrlKey && e.key === "0") { e.preventDefault(); currentZoom = 100; applyZoom(); }
             if (e.ctrlKey && e.shiftKey && e.key === "N") { e.preventDefault(); createIncognitoTab(); }
             if (e.ctrlKey && e.key === "h") { e.preventDefault(); toggleHistory(); }
+            if (e.ctrlKey && e.key === "f") { e.preventDefault(); toggleFindBar(); }
         });
         document.addEventListener("keyup", (e) => { delete _keysHeld[e.key.toLowerCase()]; });
 
@@ -1710,6 +1786,96 @@
             if (tb) { document.documentElement.style.setProperty('--toolbar-bg', tb); document.getElementById("toolbarColor").value = tb; }
             if (bg) mainArea.style.backgroundImage = `url('${bg}')`;
             document.getElementById("proxyToggle").checked = useProxy;
+        }
+
+        // ==================== SEARCH SUGGESTIONS ====================
+        let sugIdx = -1;
+        function showSuggestions() {
+            const q = addressBar.value.trim().toLowerCase();
+            const box = document.getElementById('suggestions');
+            if (!q || q.length < 2) { box.classList.remove('show'); return; }
+            const results = [];
+            browsingHistory.forEach(h => {
+                if (h.url.toLowerCase().includes(q) || (h.title && h.title.toLowerCase().includes(q))) {
+                    if (!results.some(r => r.url === h.url)) results.push({ url: h.url, title: h.title, type: 'History' });
+                }
+            });
+            bookmarks.forEach(b => {
+                if (b.url.toLowerCase().includes(q) || b.name.toLowerCase().includes(q)) {
+                    if (!results.some(r => r.url === b.url)) results.push({ url: b.url, title: b.name, type: 'Bookmark' });
+                }
+            });
+            if (results.length === 0 && !q.includes('.')) {
+                results.push({ url: 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(q), title: 'Search: ' + q, type: 'Google' });
+            }
+            if (results.length === 0) { box.classList.remove('show'); return; }
+            sugIdx = -1;
+            let html = '';
+            results.slice(0, 8).forEach((r, i) => {
+                const hostname = r.url.replace(/^https?:\/\//, '').split('/')[0];
+                html += '<div class="suggestion" data-url="' + r.url.replace(/"/g, '&quot;') + '" onclick="pickSuggestion(this)">';
+                html += '<img src="https://www.google.com/s2/favicons?domain=' + hostname + '&sz=16" onerror="this.style.display=\'none\'">';
+                html += '<span>' + (r.title || hostname) + '</span>';
+                html += '<span class="sug-type">' + r.type + '</span>';
+                html += '</div>';
+            });
+            box.innerHTML = html;
+            box.classList.add('show');
+        }
+        function hideSuggestions() { document.getElementById('suggestions').classList.remove('show'); sugIdx = -1; }
+        function pickSuggestion(el) {
+            addressBar.value = el.dataset.url;
+            hideSuggestions();
+            go();
+        }
+        addressBar.addEventListener('keydown', (e) => {
+            const box = document.getElementById('suggestions');
+            if (!box.classList.contains('show')) return;
+            const items = box.querySelectorAll('.suggestion');
+            if (e.key === 'ArrowDown') { e.preventDefault(); sugIdx = Math.min(sugIdx + 1, items.length - 1); updateSugSelection(items); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); sugIdx = Math.max(sugIdx - 1, -1); updateSugSelection(items); }
+            if (e.key === 'Enter' && sugIdx >= 0) { e.preventDefault(); pickSuggestion(items[sugIdx]); }
+            if (e.key === 'Escape') { hideSuggestions(); }
+        });
+        function updateSugSelection(items) {
+            items.forEach((el, i) => el.classList.toggle('selected', i === sugIdx));
+            if (sugIdx >= 0) addressBar.value = items[sugIdx].dataset.url;
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) hideSuggestions();
+        });
+
+        // ==================== FIND ON PAGE ====================
+        function toggleFindBar() {
+            const bar = document.getElementById('findBar');
+            if (bar.classList.contains('show')) { closeFindBar(); return; }
+            bar.classList.add('show');
+            document.getElementById('findInput').focus();
+        }
+        function closeFindBar() {
+            document.getElementById('findBar').classList.remove('show');
+            document.getElementById('findInput').value = '';
+            document.getElementById('findCount').textContent = '';
+        }
+        function findOnPage() {
+            const query = document.getElementById('findInput').value;
+            const tab = getActiveTab();
+            if (!tab || !query) { document.getElementById('findCount').textContent = ''; return; }
+            try {
+                tab.iframe.contentWindow.find(query, false, false, true);
+            } catch(e) {}
+        }
+
+        // ==================== QUICK NOTES ====================
+        function toggleNotes() {
+            const panel = document.getElementById('notesPanel');
+            panel.classList.toggle('show');
+            if (panel.classList.contains('show')) {
+                document.getElementById('notesText').value = localStorage.getItem('neon_notes') || '';
+            }
+        }
+        function saveNotes() {
+            localStorage.setItem('neon_notes', document.getElementById('notesText').value);
         }
 
         // ==================== CLOCK ====================
