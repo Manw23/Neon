@@ -737,8 +737,19 @@
                 const t = tabs.find(x => x.iframe === iframe);
                 if (t) {
                     try {
-                        const newUrl = iframe.contentWindow.location.href;
-                        if (newUrl && newUrl !== "about:blank") { t._currentUrl = newUrl; }
+                        const iframeHref = iframe.contentWindow.location.href;
+                        if (iframeHref && iframeHref !== "about:blank") {
+                            t._currentUrl = iframeHref;
+                            const orig = extractProxyUrl(iframeHref);
+                            if (orig) {
+                                t._originalUrl = orig;
+                                const hostname = orig.replace(/^https?:\/\//, '').split('/')[0];
+                                addressBar.value = orig;
+                                t.title = hostname;
+                                t.icon = 'https://www.google.com/s2/favicons?domain=' + hostname + '&sz=32';
+                                renderTabs();
+                            }
+                        }
                     } catch (e) {}
                 }
             });
@@ -806,12 +817,21 @@
             return tabs.find(t => t.id === activeTabId);
         }
 
-        let useProxy = localStorage.getItem('neon_proxy') === 'true';
+        let useProxy = localStorage.getItem('neon_proxy') !== 'false';
 
+        const PROXY_BASE = "https://neon-auth-nocnywkq.fly.dev";
         function proxyUrl(url) {
             if (!useProxy) return url;
-            if (url.includes('api.allorigins.win')) return url;
-            return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+            if (url.includes(PROXY_BASE + '/proxy')) return url;
+            return PROXY_BASE + "/proxy?url=" + encodeURIComponent(url);
+        }
+        function extractProxyUrl(proxyHref) {
+            if (!proxyHref) return null;
+            try {
+                const u = new URL(proxyHref);
+                if (u.pathname === '/proxy' && u.searchParams.has('url')) return u.searchParams.get('url');
+            } catch(e) {}
+            return null;
         }
 
         function navigateInTab(tab, url) {
@@ -1125,10 +1145,12 @@
             const btn = document.querySelector('[onclick="refresh()"]');
             if (btn) btn.classList.add('spinning');
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
+            // Try direct reload (works when proxy makes iframe same-origin)
             try {
                 tab.iframe.contentWindow.location.reload();
                 return;
             } catch (e) {}
+            // Fallback: use tracked proxy URL from in-iframe navigation
             if (tab._currentUrl) {
                 tab.iframe.src = tab._currentUrl;
             } else {
