@@ -618,6 +618,18 @@
         .tab.pinned { min-width: unset; max-width: 42px; padding: 6px 10px; }
         .tab.pinned .tab-title, .tab.pinned .tab-close { display: none; }
 
+        /* Tab Groups */
+        .tab-group-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            flex-shrink: 0; margin-right: 2px;
+        }
+        .tab-group-label {
+            font-size: 10px; color: #aaa; padding: 4px 8px;
+            background: rgba(255,255,255,0.05); border-radius: 6px 6px 0 0;
+            margin-right: 2px; display: inline-flex; align-items: center; gap: 4px;
+            cursor: default;
+        }
+
         /* Incognito Tab */
         .tab.incognito { background: #2d1a3a; }
         .tab.incognito.active { background: #3d2a4a; border-bottom-color: #9c27b0; }
@@ -1103,9 +1115,17 @@
             tabs.forEach((tab, idx) => {
                 const div = document.createElement("div");
                 div.className = "tab" + (tab.id === activeTabId ? " active" : "") + (tab.pinned ? " pinned" : "") + (tab.incognito ? " incognito" : "");
+                if (tab.groupColor) div.style.borderBottomColor = tab.groupColor;
                 div.draggable = true;
                 div.dataset.tabIdx = idx;
                 div.onclick = () => switchTab(tab.id);
+
+                if (tab.groupColor) {
+                    const dot = document.createElement('div');
+                    dot.className = 'tab-group-dot';
+                    dot.style.background = tab.groupColor;
+                    div.appendChild(dot);
+                }
 
                 div.addEventListener("dragstart", (e) => {
                     dragTabId = tab.id;
@@ -1181,10 +1201,25 @@
             const menu = document.getElementById("tabCtxMenu");
             menu.innerHTML = '';
             const t = tabs.find(t2 => t2.id === tabId);
+            const groupColors = [
+                { name: 'None', color: null },
+                { name: '🔴 Red', color: '#ef5350' },
+                { name: '🟠 Orange', color: '#ff9800' },
+                { name: '🟡 Yellow', color: '#ffeb3b' },
+                { name: '🟢 Green', color: '#4caf50' },
+                { name: '🔵 Blue', color: '#2196f3' },
+                { name: '🟣 Purple', color: '#9c27b0' },
+                { name: '🩷 Pink', color: '#e91e63' },
+            ];
             const items = [
                 { label: (t && t.pinned) ? '📌 Unpin Tab' : '📌 Pin Tab', action: () => pinTab(tabId) },
                 { label: 'Duplicate Tab', action: () => { if (t && t.pos >= 0) createTab(t.navHistory[t.pos]); }},
                 { label: '🕶 New Incognito Tab', action: () => createIncognitoTab() },
+                { label: 'divider' },
+                ...groupColors.map(gc => ({
+                    label: gc.color ? gc.name : '⊘ No Group',
+                    action: () => { if (t) { t.groupColor = gc.color; renderTabs(); } }
+                })),
                 { label: 'divider' },
                 { label: 'Close Tab', action: () => closeTab(tabId) },
                 { label: 'Close Other Tabs', action: () => { tabs.filter(t2 => t2.id !== tabId).forEach(t2 => closeTab(t2.id)); }},
