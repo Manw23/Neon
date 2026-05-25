@@ -1710,6 +1710,7 @@
         let ytPlayer = null;
         let ytReady = false;
         let phonkPlaying = false;
+        let phonkHistory = [phonkIdx];
 
         // Load YouTube IFrame API
         (function() {
@@ -1767,7 +1768,10 @@
         }
 
         function phonkNext() {
-            phonkIdx = Math.floor(Math.random() * phonkTracks.length);
+            let next;
+            do { next = Math.floor(Math.random() * phonkTracks.length); } while (next === phonkIdx && phonkTracks.length > 1);
+            phonkIdx = next;
+            phonkHistory.push(phonkIdx);
             document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
             if (ytReady) {
                 ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
@@ -1777,7 +1781,10 @@
         }
 
         function phonkPrev() {
-            phonkIdx = (phonkIdx - 1 + phonkTracks.length) % phonkTracks.length;
+            if (phonkHistory.length > 1) {
+                phonkHistory.pop();
+                phonkIdx = phonkHistory[phonkHistory.length - 1];
+            }
             document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
             if (ytReady) {
                 ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
