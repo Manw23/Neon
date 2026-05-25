@@ -1991,6 +1991,10 @@
                     document.getElementById("toolbarColor").value = data.toolbar_color;
                     localStorage.setItem('neon_toolbar', data.toolbar_color);
                 }
+                if (data.theme) {
+                    localStorage.setItem('neon_theme', data.theme);
+                    loadTheme();
+                }
             } catch (e) {}
         }
 
@@ -2008,7 +2012,8 @@
                         bookmarks: userBookmarks,
                         titlebar_color: localStorage.getItem('neon_titlebar'),
                         toolbar_color: localStorage.getItem('neon_toolbar'),
-                        profile_pic: localStorage.getItem('neon_profile_pic') || ''
+                        profile_pic: localStorage.getItem('neon_profile_pic') || '',
+                        theme: localStorage.getItem('neon_theme') || ''
                     })
                 });
             } catch (e) {}
