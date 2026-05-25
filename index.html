@@ -591,6 +591,30 @@
             .go-btn { padding: 9px 14px; }
             .toolbar { padding: 6px 8px; gap: 4px; }
         }
+        .phonk-btn {
+            position: fixed; bottom: 16px; right: 16px; z-index: 9999;
+            width: 44px; height: 44px; border-radius: 50%; border: none;
+            background: linear-gradient(135deg, #e91e63, #9c27b0);
+            color: #fff; font-size: 20px; cursor: pointer;
+            box-shadow: 0 2px 12px rgba(233,30,99,0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .phonk-btn:hover { transform: scale(1.15); box-shadow: 0 4px 20px rgba(233,30,99,0.7); }
+        .phonk-player {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 9998;
+            background: linear-gradient(90deg, #1a1a2e, #16213e, #0f3460);
+            padding: 8px 16px; display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 -2px 16px rgba(0,0,0,0.5);
+        }
+        .phonk-player button {
+            background: none; border: none; color: #fff; font-size: 18px;
+            cursor: pointer; padding: 4px 8px; border-radius: 4px;
+        }
+        .phonk-player button:hover { background: rgba(255,255,255,0.1); }
+        .phonk-title { color: #aaa; font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .phonk-player input[type="range"] {
+            width: 80px; accent-color: #e91e63;
+        }
     </style>
 </head>
 <body>
@@ -659,6 +683,17 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <!-- Phonk Music Player -->
+    <div id="phonkPlayer" class="phonk-player" style="display:none">
+        <button onclick="phonkPrev()" title="Previous">⏮</button>
+        <button onclick="phonkToggle()" id="phonkPlayBtn" title="Play/Pause">▶</button>
+        <button onclick="phonkNext()" title="Next">⏭</button>
+        <span id="phonkTitle" class="phonk-title">Phonk</span>
+        <input type="range" id="phonkVolume" min="0" max="100" value="50" oninput="phonkSetVol(this.value)" title="Volume">
+        <button onclick="phonkClose()" title="Close">×</button>
+    </div>
+    <button id="phonkBtn" class="phonk-btn" onclick="phonkOpen()" title="Phonk Music">🎵</button>
 
     <script>
         const IS_BACKEND = location.hostname.includes("tunnel") || location.port === "8001";
@@ -1113,8 +1148,20 @@
             const btn = document.querySelector('[onclick="refresh()"]');
             if (btn) btn.classList.add('spinning');
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
-            // Use the current URL from nav history (what's shown in address bar)
-            const currentUrl = (tab.pos >= 0 && tab.pos < tab.navHistory.length) ? tab.navHistory[tab.pos] : tab.iframe.src;
+            // Try to get the iframe's actual current URL (works for same-origin)
+            let currentUrl;
+            try {
+                currentUrl = tab.iframe.contentWindow.location.href;
+                if (currentUrl === "about:blank") throw 0;
+            } catch (e) {
+                // Cross-origin: fall back to what's in the address bar, then nav history
+                const barVal = addressBar.value.trim();
+                if (barVal && barVal.startsWith("http")) {
+                    currentUrl = barVal;
+                } else {
+                    currentUrl = (tab.pos >= 0 && tab.pos < tab.navHistory.length) ? tab.navHistory[tab.pos] : tab.iframe.src;
+                }
+            }
             tab.iframe.src = proxyUrl(currentUrl);
         }
 
@@ -1166,7 +1213,16 @@
         }
 
         // ==================== KEYBOARD SHORTCUTS ====================
+        // T+E shortcut: track both keys held
+        const _keysHeld = {};
         document.addEventListener("keydown", (e) => {
+            _keysHeld[e.key.toLowerCase()] = true;
+            // T+E = fake Gmail
+            if (_keysHeld["t"] && _keysHeld["e"]) {
+                e.preventDefault();
+                const tab = getActiveTab();
+                if (tab) navigateInTab(tab, "https://mail.google.com");
+            }
             if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); back(); }
             if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); forward(); }
             if (e.altKey && e.key === "Home") { e.preventDefault(); goHome(); }
@@ -1177,6 +1233,7 @@
             if (e.ctrlKey && e.key === "l") { e.preventDefault(); addressBar.select(); addressBar.focus(); }
             if (e.ctrlKey && e.key === "k") { e.preventDefault(); addressBar.value = ""; addressBar.focus(); }
         });
+        document.addEventListener("keyup", (e) => { delete _keysHeld[e.key.toLowerCase()]; });
 
         document.addEventListener("click", (e) => {
             if (panel.style.display === "block" && !panel.contains(e.target) && !e.target.classList.contains("customize-btn")) {
@@ -1613,6 +1670,78 @@
             }
         }
         init();
+
+        // ==================== PHONK MUSIC PLAYER ====================
+        const phonkTracks = [
+            {title: "MURDER IN MY MIND", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
+            {title: "DRIFT PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
+            {title: "BRAZILIAN PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
+            {title: "KORDHELL - MURDER", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
+            {title: "FUNK OVERDRIVE", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
+            {title: "CLOSE EYES", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
+            {title: "METAMORPHOSIS", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
+            {title: "SHADOW PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+        ];
+        let phonkIdx = Math.floor(Math.random() * phonkTracks.length);
+        let phonkAudio = null;
+        let phonkPlaying = false;
+
+        function phonkOpen() {
+            document.getElementById("phonkPlayer").style.display = "flex";
+            document.getElementById("phonkBtn").style.display = "none";
+            if (!phonkAudio) {
+                phonkAudio = new Audio();
+                phonkAudio.volume = 0.5;
+                phonkAudio.addEventListener("ended", phonkNext);
+            }
+            phonkLoad();
+            phonkAudio.play().catch(() => {});
+            phonkPlaying = true;
+            document.getElementById("phonkPlayBtn").textContent = "⏸";
+        }
+
+        function phonkClose() {
+            document.getElementById("phonkPlayer").style.display = "none";
+            document.getElementById("phonkBtn").style.display = "block";
+            if (phonkAudio) { phonkAudio.pause(); }
+            phonkPlaying = false;
+            document.getElementById("phonkPlayBtn").textContent = "▶";
+        }
+
+        function phonkLoad() {
+            if (!phonkAudio) return;
+            phonkAudio.src = phonkTracks[phonkIdx].url;
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
+        }
+
+        function phonkToggle() {
+            if (!phonkAudio) return;
+            if (phonkPlaying) {
+                phonkAudio.pause();
+                phonkPlaying = false;
+                document.getElementById("phonkPlayBtn").textContent = "▶";
+            } else {
+                phonkAudio.play().catch(() => {});
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
+            }
+        }
+
+        function phonkNext() {
+            phonkIdx = Math.floor(Math.random() * phonkTracks.length);
+            phonkLoad();
+            if (phonkPlaying) phonkAudio.play().catch(() => {});
+        }
+
+        function phonkPrev() {
+            phonkIdx = (phonkIdx - 1 + phonkTracks.length) % phonkTracks.length;
+            phonkLoad();
+            if (phonkPlaying) phonkAudio.play().catch(() => {});
+        }
+
+        function phonkSetVol(v) {
+            if (phonkAudio) phonkAudio.volume = v / 100;
+        }
     </script>
 </body>
 </html>
