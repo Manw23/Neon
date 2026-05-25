@@ -689,6 +689,33 @@
             border-radius: 0 0 12px 12px; font-family: system-ui, sans-serif;
         }
 
+        /* Downloads/Save */
+        .download-btn {
+            background: var(--surface); border: none; color: #ccc;
+            padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .download-btn:hover { background: var(--surface-hover); color: #fff; }
+
+        /* Keyboard Shortcuts Overlay */
+        .shortcuts-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 4000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .shortcuts-overlay.show { display: flex; }
+        .shortcuts-content {
+            background: #1f1f1f; border: 1px solid #444; border-radius: 16px;
+            padding: 28px; width: 400px; max-width: 90%; max-height: 80vh; overflow-y: auto;
+        }
+        .shortcuts-content h3 { color: var(--accent); margin-bottom: 16px; text-align: center; }
+        .shortcut-row {
+            display: flex; justify-content: space-between; padding: 6px 0;
+            font-size: 13px; color: #ccc; border-bottom: 1px solid #333;
+        }
+        .shortcut-row kbd {
+            background: #333; color: #fff; padding: 2px 6px; border-radius: 4px;
+            font-size: 11px; font-family: monospace;
+        }
+
         /* Split Screen */
         .main.split-view { display: flex; flex-direction: row; }
         .main.split-view iframe { position: relative; inset: unset; }
@@ -848,6 +875,29 @@
             <button onclick="toggleNotes()">×</button>
         </div>
         <textarea id="notesText" placeholder="Type your notes here..." oninput="saveNotes()"></textarea>
+    </div>
+
+    <div class="shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)this.classList.remove('show')">
+        <div class="shortcuts-content">
+            <h3>⌨ Keyboard Shortcuts</h3>
+            <div class="shortcut-row"><span>New Tab</span><kbd>Ctrl+T</kbd></div>
+            <div class="shortcut-row"><span>Close Tab</span><kbd>Ctrl+W</kbd></div>
+            <div class="shortcut-row"><span>New Incognito Tab</span><kbd>Ctrl+Shift+N</kbd></div>
+            <div class="shortcut-row"><span>Focus Address Bar</span><kbd>Ctrl+L</kbd></div>
+            <div class="shortcut-row"><span>Clear Address Bar</span><kbd>Ctrl+K</kbd></div>
+            <div class="shortcut-row"><span>Find on Page</span><kbd>Ctrl+F</kbd></div>
+            <div class="shortcut-row"><span>History</span><kbd>Ctrl+H</kbd></div>
+            <div class="shortcut-row"><span>Zoom In</span><kbd>Ctrl+=</kbd></div>
+            <div class="shortcut-row"><span>Zoom Out</span><kbd>Ctrl+-</kbd></div>
+            <div class="shortcut-row"><span>Reset Zoom</span><kbd>Ctrl+0</kbd></div>
+            <div class="shortcut-row"><span>Refresh</span><kbd>F5</kbd></div>
+            <div class="shortcut-row"><span>Back</span><kbd>Alt+←</kbd></div>
+            <div class="shortcut-row"><span>Forward</span><kbd>Alt+→</kbd></div>
+            <div class="shortcut-row"><span>Home</span><kbd>Alt+Home</kbd></div>
+            <div class="shortcut-row"><span>Show Shortcuts</span><kbd>Ctrl+/</kbd></div>
+            <div class="shortcut-row"><span>Gmail</span><kbd>T+E</kbd></div>
+            <p style="color:#666;font-size:11px;text-align:center;margin-top:12px">Click outside to close</p>
+        </div>
     </div>
 
     <div class="toast" id="toast"></div>
@@ -1081,6 +1131,16 @@
                 const title = document.createElement("span");
                 title.className = "tab-title";
                 title.textContent = tab.pos >= 0 ? tab.title : "New Tab";
+                title.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'text'; input.value = title.textContent;
+                    input.style.cssText = 'width:80px;background:#111;border:1px solid var(--accent);color:#fff;font-size:11px;padding:1px 4px;border-radius:3px;outline:none';
+                    input.onblur = () => { tab.title = input.value || 'New Tab'; renderTabs(); };
+                    input.onkeypress = (ev) => { if(ev.key==='Enter') input.blur(); };
+                    title.replaceWith(input);
+                    input.focus(); input.select();
+                });
                 div.appendChild(title);
 
                 div.addEventListener("contextmenu", (e) => {
@@ -1432,6 +1492,11 @@
             if (e.ctrlKey && e.shiftKey && e.key === "N") { e.preventDefault(); createIncognitoTab(); }
             if (e.ctrlKey && e.key === "h") { e.preventDefault(); toggleHistory(); }
             if (e.ctrlKey && e.key === "f") { e.preventDefault(); toggleFindBar(); }
+            if (e.ctrlKey && e.key === "/") { e.preventDefault(); document.getElementById('shortcutsOverlay').classList.toggle('show'); }
+            if (e.key === "Escape") {
+                document.getElementById('shortcutsOverlay').classList.remove('show');
+                closeFindBar();
+            }
         });
         document.addEventListener("keyup", (e) => { delete _keysHeld[e.key.toLowerCase()]; });
 
