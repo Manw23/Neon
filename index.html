@@ -223,6 +223,19 @@
             padding: 0;
         }
         .bookmark:hover .delete-bm { display: block; }
+        .bookmark.drag-over-bm { border-left: 2px solid var(--accent); }
+        .bookmark.dragging-bm { opacity: 0.4; }
+        .bm-context-menu {
+            position: fixed; background: #1f1f1f; border: 1px solid #444; border-radius: 8px;
+            padding: 4px 0; min-width: 140px; z-index: 5000; display: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .bm-context-menu.show { display: block; }
+        .bm-context-menu button {
+            display: block; width: 100%; padding: 8px 16px; background: none;
+            border: none; color: #ccc; font-size: 13px; cursor: pointer; text-align: left;
+        }
+        .bm-context-menu button:hover { background: var(--surface-hover); color: #fff; }
 
         /* Toolbar */
         .toolbar {
@@ -867,6 +880,7 @@
     </div>
 
     <div class="tab-context-menu" id="tabCtxMenu"></div>
+    <div class="bm-context-menu" id="bmCtxMenu"></div>
     <div class="history-panel" id="historyPanel"></div>
 
     <div class="modal-overlay" id="authModal">
@@ -1241,12 +1255,31 @@
             };
         }
 
+        let dragBmIdx = null;
         function renderBookmarks() {
             const container = document.getElementById("bookmarks");
             container.innerHTML = "";
             bookmarks.forEach((bm, i) => {
                 const div = document.createElement("div");
                 div.className = "bookmark";
+                if (bm.color) div.style.borderBottom = '2px solid ' + bm.color;
+                div.draggable = true;
+                div.dataset.bmIdx = i;
+
+                // Drag to reorder
+                div.addEventListener('dragstart', () => { dragBmIdx = i; div.classList.add('dragging-bm'); });
+                div.addEventListener('dragend', () => { dragBmIdx = null; div.classList.remove('dragging-bm'); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); });
+                div.addEventListener('dragover', (e) => { e.preventDefault(); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); if (dragBmIdx !== i) div.classList.add('drag-over-bm'); });
+                div.addEventListener('dragleave', () => div.classList.remove('drag-over-bm'));
+                div.addEventListener('drop', (e) => {
+                    e.preventDefault(); div.classList.remove('drag-over-bm');
+                    if (dragBmIdx === null || dragBmIdx === i) return;
+                    const [moved] = bookmarks.splice(dragBmIdx, 1);
+                    bookmarks.splice(i, 0, moved);
+                    localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                    renderBookmarks();
+                    syncToCloud();
+                });
 
                 const img = document.createElement("img");
                 img.src = bm.icon;
@@ -1255,22 +1288,90 @@
 
                 const text = document.createElement("span");
                 text.textContent = bm.name;
+                text.style.cursor = 'pointer';
+
+                // Double-click to rename
+                text.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'text'; input.value = bm.name;
+                    input.style.cssText = 'width:80px;background:#111;border:1px solid var(--accent);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;outline:none';
+                    input.onblur = () => {
+                        bm.name = input.value || bm.name;
+                        localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                        renderBookmarks();
+                        syncToCloud();
+                    };
+                    input.onkeypress = (ev) => { if(ev.key==='Enter') input.blur(); };
+                    text.replaceWith(input);
+                    input.focus(); input.select();
+                });
+
                 div.appendChild(img);
                 div.appendChild(text);
                 div.onclick = () => visitBookmark(bm.url);
 
-                if (bm.url !== defaultBookmark.url) {
-                    const del = document.createElement("button");
-                    del.className = "delete-bm";
-                    del.textContent = "×";
-                    del.title = "Remove bookmark";
-                    del.onclick = (e) => { e.stopPropagation(); deleteBookmark(i); };
-                    div.appendChild(del);
-                }
+                // Right-click context menu
+                div.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    showBmContextMenu(e, i);
+                });
+
+                // Delete button (hover)
+                const del = document.createElement("button");
+                del.className = "delete-bm";
+                del.textContent = "×";
+                del.title = "Remove bookmark";
+                del.onclick = (e) => { e.stopPropagation(); deleteBookmark(i); };
+                div.appendChild(del);
 
                 container.appendChild(div);
             });
             renderHomeShortcuts();
+        }
+
+        function showBmContextMenu(e, idx) {
+            const menu = document.getElementById('bmCtxMenu');
+            menu.innerHTML = '';
+            const items = [
+                { label: '✏ Rename', action: () => { renameBmPrompt(idx); }},
+                { label: '🎨 Set Color', action: () => { colorBmPrompt(idx); }},
+                { label: '🗑 Delete', action: () => { deleteBookmark(idx); }},
+            ];
+            items.forEach(item => {
+                const btn = document.createElement('button');
+                btn.textContent = item.label;
+                btn.onclick = () => { item.action(); menu.classList.remove('show'); };
+                menu.appendChild(btn);
+            });
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.classList.add('show');
+        }
+        document.addEventListener('click', () => {
+            document.getElementById('bmCtxMenu').classList.remove('show');
+        });
+
+        function renameBmPrompt(idx) {
+            const name = prompt('Rename bookmark:', bookmarks[idx].name);
+            if (name) {
+                bookmarks[idx].name = name;
+                localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                renderBookmarks();
+                syncToCloud();
+                showToast('Bookmark renamed');
+            }
+        }
+        function colorBmPrompt(idx) {
+            const colors = ['#ff5555','#ff6b35','#ffcc00','#4caf50','#00aaff','#7b68ee','#ff69b4','#00d4ff'];
+            const color = prompt('Pick a color hex (e.g. #ff5555):\n\nPresets: ' + colors.join(', '), bookmarks[idx].color || '#00aaff');
+            if (color) {
+                bookmarks[idx].color = color;
+                localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                renderBookmarks();
+                syncToCloud();
+                showToast('Bookmark color set');
+            }
         }
 
         function renderHomeShortcuts() {
