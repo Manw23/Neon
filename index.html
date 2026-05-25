@@ -349,7 +349,11 @@
             background-size: cover;
             background-position: center;
         }
-        .main iframe { width: 100%; height: 100%; border: none; background: white; position: absolute; inset: 0; }
+        .main iframe {
+            width: 100%; height: 100%; border: none; background: white; position: absolute; inset: 0;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* Loading Bar */
         .loading-bar {
@@ -804,7 +808,7 @@
 
     <div class="titlebar">
         <strong>NEON</strong>
-        <span class="clock" id="clock"></span>
+        <span class="clock" id="clock" title=""></span>
         <div class="titlebar-right">
             <div id="phonkPlayer" class="phonk-player" style="display:none">
                 <button onclick="phonkPrev()" title="Previous">⏮</button>
@@ -1307,7 +1311,10 @@
                 url: t.url,
                 navHistory: t.navHistory,
                 pos: t.pos,
-                icon: t.icon
+                icon: t.icon,
+                pinned: t.pinned || false,
+                incognito: t.incognito || false,
+                groupColor: t.groupColor || null
             }));
             localStorage.setItem('neon_tabs', JSON.stringify(data));
             const act = getActiveTab();
@@ -2238,6 +2245,20 @@
             localStorage.setItem('neon_notes', document.getElementById('notesText').value);
         }
 
+        // ==================== SHARE PAGE ====================
+        function sharePage() {
+            const tab = getActiveTab();
+            if (!tab || tab.pos < 0) { showToast('Nothing to share'); return; }
+            const url = tab.navHistory[tab.pos];
+            if (navigator.share) {
+                navigator.share({ title: tab.title, url: url }).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => showToast('URL copied!')).catch(() => showToast('Could not copy'));
+            } else {
+                prompt('Copy this URL:', url);
+            }
+        }
+
         // ==================== FULLSCREEN ====================
         function toggleFullscreen() {
             if (document.fullscreenElement) {
@@ -2253,7 +2274,9 @@
             const h = now.getHours() % 12 || 12;
             const m = String(now.getMinutes()).padStart(2, '0');
             const ap = now.getHours() >= 12 ? 'PM' : 'AM';
-            document.getElementById('clock').textContent = h + ':' + m + ' ' + ap;
+            const el = document.getElementById('clock');
+            el.textContent = h + ':' + m + ' ' + ap;
+            el.title = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
         function updateGreeting() {
             const hr = new Date().getHours();
@@ -2445,7 +2468,10 @@
                                 navHistory: t.navHistory || [],
                                 pos: t.pos != null ? t.pos : -1,
                                 iframe,
-                                icon: t.icon || null
+                                icon: t.icon || null,
+                                pinned: t.pinned || false,
+                                incognito: t.incognito || false,
+                                groupColor: t.groupColor || null
                             };
                             tabs.push(tab);
                             if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
