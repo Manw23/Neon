@@ -732,7 +732,16 @@
             iframe.id = "frame-" + id;
             iframe.style.display = "none";
             iframe.sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox";
-            iframe.addEventListener("load", () => { loadingBar.style.display = "none"; });
+            iframe.addEventListener("load", () => {
+                loadingBar.style.display = "none";
+                const t = tabs.find(x => x.iframe === iframe);
+                if (t) {
+                    try {
+                        const newUrl = iframe.contentWindow.location.href;
+                        if (newUrl && newUrl !== "about:blank") { t._currentUrl = newUrl; }
+                    } catch (e) {}
+                }
+            });
             mainArea.appendChild(iframe);
 
             const tab = {
@@ -741,7 +750,8 @@
                 url: url || "",
                 navHistory: [],
                 pos: -1,
-                iframe
+                iframe,
+                _currentUrl: null
             };
             tabs.push(tab);
             switchTab(id);
@@ -1117,7 +1127,11 @@
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
             try {
                 tab.iframe.contentWindow.location.reload();
-            } catch (e) {
+                return;
+            } catch (e) {}
+            if (tab._currentUrl) {
+                tab.iframe.src = tab._currentUrl;
+            } else {
                 const curSrc = tab.iframe.src;
                 if (curSrc && curSrc !== "about:blank") {
                     tab.iframe.src = curSrc;
@@ -1662,14 +1676,35 @@
 
         // ==================== PHONK MUSIC PLAYER ====================
         const phonkTracks = [
-            {title: "DARK PHONK EDIT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
-            {title: "DRIFT EDIT BEAT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
-            {title: "AGGRESSIVE EDIT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
-            {title: "BRAZILIAN PHONK EDIT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
-            {title: "METAMORPHOSIS EDIT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
-            {title: "MURDER IN MY MIND EDIT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
-            {title: "CLOSE EYES EDIT", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
-            {title: "FUNK PHONK BASS", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+            // Electronic & Phonk (High Energy)
+            {title: "Sunroof – Nicky Youre", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
+            {title: "Metamorphosis – INTERWORLD", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
+            {title: "Rave – Dxrk 🔥", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
+            {title: "Close Eyes – DVRST", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
+            {title: "Alone – Marshmello", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
+            {title: "Fade – Alan Walker", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
+            {title: "Nevada – Vicetone", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
+            {title: "Fly – Marshmello", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+            // Hip-Hop & Cinematic Beats (Hype/Sports)
+            {title: "Industry Baby – Lil Nas X", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"},
+            {title: "Remember the Name – Fort Minor", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3"},
+            {title: "Life Is Good – Future ft. Drake", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3"},
+            {title: "Centuries – Fall Out Boy", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3"},
+            {title: "Legends Are Made – Sam Tinnesz", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3"},
+            {title: "Unstoppable – The Score", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3"},
+            {title: "Ready Set Go – Royal Deluxe", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"},
+            // Pop & Trend Beats (Smooth/Aesthetic)
+            {title: "Stay – Kid LAROI & Justin Bieber", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3"},
+            {title: "Blinding Lights – The Weeknd", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
+            {title: "Golden Hour – JVKE", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
+            {title: "As It Was – Harry Styles", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
+            {title: "Starboy – The Weeknd", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
+            {title: "Heat Waves – Glass Animals", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
+            // No-Copyright Essentials (NCS)
+            {title: "Mortals – Warriyo [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
+            {title: "Blank – Disfigure [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
+            {title: "My Heart – Different Heaven [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+            {title: "Cloud 9 – Itro & Tobu [NCS]", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3"},
         ];
         let phonkIdx = Math.floor(Math.random() * phonkTracks.length);
         let phonkAudio = null;
