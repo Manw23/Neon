@@ -358,7 +358,8 @@
             animation: loading-slide 1s linear infinite;
             z-index: 10;
             display: none;
-            width: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
         }
         @keyframes loading-slide {
             0% { background-position: 200% 0; }
@@ -924,6 +925,7 @@
             <div class="shortcut-row"><span>Back</span><kbd>Alt+←</kbd></div>
             <div class="shortcut-row"><span>Forward</span><kbd>Alt+→</kbd></div>
             <div class="shortcut-row"><span>Home</span><kbd>Alt+Home</kbd></div>
+            <div class="shortcut-row"><span>Reopen Closed Tab</span><kbd>Ctrl+Shift+T</kbd></div>
             <div class="shortcut-row"><span>Show Shortcuts</span><kbd>Ctrl+/</kbd></div>
             <div class="shortcut-row"><span>Gmail</span><kbd>T+E</kbd></div>
             <p style="color:#666;font-size:11px;text-align:center;margin-top:12px">Click outside to close</p>
@@ -982,7 +984,7 @@
             iframe.style.display = "none";
             iframe.sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox";
             iframe.addEventListener("load", () => {
-                loadingBar.style.display = "none";
+                finishLoading();
                 const t = tabs.find(x => x.iframe === iframe);
                 if (t) {
                     try {
@@ -1044,6 +1046,7 @@
             renderTabs();
         }
 
+        let recentlyClosed = [];
         function closeTab(id, e) {
             if (e) e.stopPropagation();
             if (tabs.length <= 1) {
@@ -1052,6 +1055,10 @@
             }
             const idx = tabs.findIndex(t => t.id === id);
             const tab = tabs[idx];
+            if (tab.pos >= 0 && tab.navHistory[tab.pos]) {
+                recentlyClosed.unshift({ url: tab.navHistory[tab.pos], title: tab.title });
+                if (recentlyClosed.length > 10) recentlyClosed.pop();
+            }
             tab.iframe.remove();
             tabs.splice(idx, 1);
 
@@ -1060,6 +1067,12 @@
                 switchTab(tabs[newIdx].id);
             }
             renderTabs();
+        }
+        function reopenClosedTab() {
+            if (recentlyClosed.length === 0) { showToast('No recently closed tabs'); return; }
+            const item = recentlyClosed.shift();
+            createTab(item.url);
+            showToast('Reopened: ' + item.title);
         }
 
         function getActiveTab() {
@@ -1223,6 +1236,7 @@
                 { label: 'divider' },
                 { label: 'Close Tab', action: () => closeTab(tabId) },
                 { label: 'Close Other Tabs', action: () => { tabs.filter(t2 => t2.id !== tabId).forEach(t2 => closeTab(t2.id)); }},
+                { label: '↩ Reopen Closed Tab', action: () => reopenClosedTab() },
             ];
             items.forEach(item => {
                 if (item.label === 'divider') {
@@ -1575,9 +1589,27 @@
         }
 
         // ==================== LOADING ====================
+        let loadingTimer = null;
+        let loadingProgress = 0;
         function showLoading() {
             loadingBar.style.display = "block";
+            loadingProgress = 0;
+            loadingBar.style.width = '0%';
             pageLoadStart = Date.now();
+            clearInterval(loadingTimer);
+            loadingTimer = setInterval(() => {
+                loadingProgress += (100 - loadingProgress) * 0.1;
+                if (loadingProgress > 90) loadingProgress = 90;
+                loadingBar.style.width = loadingProgress + '%';
+            }, 200);
+        }
+        function finishLoading() {
+            clearInterval(loadingTimer);
+            loadingBar.style.width = '100%';
+            setTimeout(() => {
+                loadingBar.style.display = 'none';
+                loadingBar.style.width = '0%';
+            }, 300);
         }
 
         // ==================== OPEN IN REAL TAB ====================
@@ -1633,6 +1665,7 @@
             if (e.ctrlKey && e.shiftKey && e.key === "N") { e.preventDefault(); createIncognitoTab(); }
             if (e.ctrlKey && e.key === "h") { e.preventDefault(); toggleHistory(); }
             if (e.ctrlKey && e.key === "f") { e.preventDefault(); toggleFindBar(); }
+            if (e.ctrlKey && e.shiftKey && e.key === "T") { e.preventDefault(); reopenClosedTab(); }
             if (e.ctrlKey && e.key === "/") { e.preventDefault(); document.getElementById('shortcutsOverlay').classList.toggle('show'); }
             if (e.key === "Escape") {
                 document.getElementById('shortcutsOverlay').classList.remove('show');
@@ -2338,7 +2371,7 @@
                             iframe.id = "frame-" + tabIdCounter;
                             iframe.style.display = "none";
                             iframe.sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox";
-                            iframe.addEventListener("load", () => { loadingBar.style.display = "none"; });
+                            iframe.addEventListener("load", () => { finishLoading(); });
                             mainArea.appendChild(iframe);
                             const tab = {
                                 id: tabIdCounter++,
