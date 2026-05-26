@@ -165,11 +165,19 @@
             color: #888;
             font-size: 18px;
             cursor: pointer;
-            padding: 6px 12px;
+            padding: 4px 8px;
             transition: color 0.15s, background 0.15s;
             border-radius: 6px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
         }
         .new-tab-btn:hover { color: #fff; background: var(--surface); }
+        .tab-count {
+            background: var(--surface); color: #aaa; font-size: 9px;
+            padding: 1px 4px; border-radius: 6px;
+        }
 
         /* Bookmarks Bar */
         .bookmarks {
@@ -219,6 +227,19 @@
             padding: 0;
         }
         .bookmark:hover .delete-bm { display: block; }
+        .bookmark.drag-over-bm { border-left: 2px solid var(--accent); }
+        .bookmark.dragging-bm { opacity: 0.4; }
+        .bm-context-menu {
+            position: fixed; background: #1f1f1f; border: 1px solid #444; border-radius: 8px;
+            padding: 4px 0; min-width: 140px; z-index: 5000; display: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .bm-context-menu.show { display: block; }
+        .bm-context-menu button {
+            display: block; width: 100%; padding: 8px 16px; background: none;
+            border: none; color: #ccc; font-size: 13px; cursor: pointer; text-align: left;
+        }
+        .bm-context-menu button:hover { background: var(--surface-hover); color: #fff; }
 
         /* Toolbar */
         .toolbar {
@@ -328,7 +349,11 @@
             background-size: cover;
             background-position: center;
         }
-        .main iframe { width: 100%; height: 100%; border: none; background: white; position: absolute; inset: 0; }
+        .main iframe {
+            width: 100%; height: 100%; border: none; background: white; position: absolute; inset: 0;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* Loading Bar */
         .loading-bar {
@@ -341,7 +366,8 @@
             animation: loading-slide 1s linear infinite;
             z-index: 10;
             display: none;
-            width: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
         }
         @keyframes loading-slide {
             0% { background-position: 200% 0; }
@@ -584,36 +610,197 @@
         .tab-context-menu button:hover { background: var(--surface-hover); color: #fff; }
         .tab-context-menu .divider { height: 1px; background: #444; margin: 4px 0; }
 
+        /* Zoom Controls */
+        .zoom-controls {
+            display: inline-flex; align-items: center; gap: 2px;
+            background: var(--surface); border-radius: 6px; padding: 2px;
+        }
+        .zoom-controls button {
+            background: none; border: none; color: #ccc; font-size: 14px;
+            cursor: pointer; padding: 4px 8px; border-radius: 4px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .zoom-controls button:hover { background: var(--surface-hover); color: #fff; }
+        .zoom-controls span { color: #aaa; font-size: 11px; min-width: 36px; text-align: center; }
+
+        /* Pinned Tab */
+        .tab.pinned { min-width: unset; max-width: 42px; padding: 6px 10px; }
+        .tab.pinned .tab-title, .tab.pinned .tab-close { display: none; }
+
+        /* Tab Groups */
+        .tab-group-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            flex-shrink: 0; margin-right: 2px;
+        }
+        .tab-group-label {
+            font-size: 10px; color: #aaa; padding: 4px 8px;
+            background: rgba(255,255,255,0.05); border-radius: 6px 6px 0 0;
+            margin-right: 2px; display: inline-flex; align-items: center; gap: 4px;
+            cursor: default;
+        }
+
+        /* Incognito Tab */
+        .tab.incognito { background: #2d1a3a; }
+        .tab.incognito.active { background: #3d2a4a; border-bottom-color: #9c27b0; }
+
+        /* Clock */
+        .clock { color: #888; font-size: 11px; font-family: monospace; margin-right: 4px; }
+
+        /* History Panel */
+        .history-panel {
+            position: absolute; top: 40px; left: 15px;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 12px;
+            padding: 16px; width: 320px; max-height: 400px; overflow-y: auto;
+            z-index: 999; display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .history-panel.show { display: block; }
+        .history-panel h4 { color: var(--accent); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .history-panel h4 button { background: var(--danger); color: #fff; border: none; padding: 3px 8px; border-radius: 4px; font-size: 11px; cursor: pointer; }
+        .history-item {
+            display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+            border-radius: 6px; cursor: pointer; font-size: 12px; color: #ccc;
+            transition: background 0.15s;
+        }
+        .history-item:hover { background: var(--surface-hover); }
+        .history-item img { width: 16px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+        .history-item .hist-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+        .history-item .hist-time { color: #666; font-size: 10px; flex-shrink: 0; }
+
+        /* Search Suggestions */
+        .suggestions {
+            position: absolute; top: 100%; left: 0; right: 0;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 12px;
+            max-height: 260px; overflow-y: auto; z-index: 100;
+            display: none; margin-top: 4px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        .suggestions.show { display: block; }
+        .suggestion {
+            padding: 8px 16px; cursor: pointer; font-size: 13px; color: #ccc;
+            display: flex; align-items: center; gap: 8px;
+            transition: background 0.1s;
+        }
+        .suggestion:first-child { border-radius: 12px 12px 0 0; }
+        .suggestion:last-child { border-radius: 0 0 12px 12px; }
+        .suggestion:hover, .suggestion.selected { background: var(--surface-hover); color: #fff; }
+        .suggestion img { width: 14px; height: 14px; border-radius: 2px; }
+        .suggestion .sug-type { color: #666; font-size: 10px; margin-left: auto; }
+
+        /* Find Bar */
+        .find-bar {
+            position: absolute; top: 8px; right: 16px;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 8px;
+            padding: 6px 10px; display: none; align-items: center; gap: 6px;
+            z-index: 50; box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+        }
+        .find-bar.show { display: flex; }
+        .find-bar input {
+            background: #111; border: 1px solid #444; border-radius: 4px;
+            color: white; padding: 4px 8px; font-size: 13px; outline: none; width: 200px;
+        }
+        .find-bar input:focus { border-color: var(--accent); }
+        .find-bar button {
+            background: var(--surface); border: none; color: #ccc; padding: 4px 8px;
+            border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .find-bar button:hover { background: var(--surface-hover); color: #fff; }
+        .find-bar span { color: #888; font-size: 11px; }
+
+        /* Notes Panel */
+        .notes-panel {
+            position: absolute; bottom: 20px; right: 20px;
+            background: #1f1f1f; border: 1px solid #444; border-radius: 12px;
+            width: 300px; z-index: 999; display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .notes-panel.show { display: block; }
+        .notes-panel-header {
+            padding: 10px 14px; border-bottom: 1px solid #444;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .notes-panel-header span { color: var(--accent); font-weight: bold; font-size: 13px; }
+        .notes-panel-header button { background: none; border: none; color: #888; font-size: 16px; cursor: pointer; }
+        .notes-panel textarea {
+            width: 100%; height: 200px; background: #111; border: none;
+            color: #ccc; padding: 12px; font-size: 13px; resize: none; outline: none;
+            border-radius: 0 0 12px 12px; font-family: system-ui, sans-serif;
+        }
+
+        /* Downloads/Save */
+        .download-btn {
+            background: var(--surface); border: none; color: #ccc;
+            padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;
+        }
+        .download-btn:hover { background: var(--surface-hover); color: #fff; }
+
+        /* Keyboard Shortcuts Overlay */
+        .shortcuts-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 4000;
+            display: none; align-items: center; justify-content: center;
+        }
+        .shortcuts-overlay.show { display: flex; }
+        .shortcuts-content {
+            background: #1f1f1f; border: 1px solid #444; border-radius: 16px;
+            padding: 28px; width: 400px; max-width: 90%; max-height: 80vh; overflow-y: auto;
+        }
+        .shortcuts-content h3 { color: var(--accent); margin-bottom: 16px; text-align: center; }
+        .shortcut-row {
+            display: flex; justify-content: space-between; padding: 6px 0;
+            font-size: 13px; color: #ccc; border-bottom: 1px solid #333;
+        }
+        .shortcut-row kbd {
+            background: #333; color: #fff; padding: 2px 6px; border-radius: 4px;
+            font-size: 11px; font-family: monospace;
+        }
+
+        /* Split Screen */
+        .main.split-view { display: flex; flex-direction: row; }
+        .main.split-view iframe { position: relative; inset: unset; }
+        .split-divider { width: 4px; background: var(--accent); cursor: col-resize; flex-shrink: 0; }
+        .split-divider:hover { background: var(--accent-hover); }
+
+        /* Page Info Bar */
+        .page-info {
+            position: absolute; bottom: 0; left: 0; right: 0; height: 24px;
+            background: rgba(26,26,26,0.95); border-top: 1px solid #333;
+            display: flex; align-items: center; padding: 0 12px;
+            font-size: 11px; color: #888; z-index: 8;
+            gap: 12px; opacity: 0; transition: opacity 0.2s;
+        }
+        .main:hover .page-info { opacity: 1; }
+
         /* Responsive */
         @media (max-width: 768px) {
             .real-tab-btn span { display: none; }
             .real-tab-btn { padding: 9px 10px; }
             .go-btn { padding: 9px 14px; }
             .toolbar { padding: 6px 8px; gap: 4px; }
+            .zoom-controls { display: none; }
+            .clock { display: none; }
+            .titlebar { padding: 4px 8px; gap: 6px; }
+            .phonk-title { max-width: 60px; }
+            .notes-panel { width: 250px; bottom: 10px; right: 10px; }
         }
-        .phonk-btn {
-            position: fixed; bottom: 16px; right: 16px; z-index: 9999;
-            width: 44px; height: 44px; border-radius: 50%; border: none;
-            background: linear-gradient(135deg, #e91e63, #9c27b0);
-            color: #fff; font-size: 20px; cursor: pointer;
-            box-shadow: 0 2px 12px rgba(233,30,99,0.5);
-            transition: transform 0.2s, box-shadow 0.2s;
+        @media (max-width: 480px) {
+            .titlebar strong { font-size: 13px; }
+            .toolbar { flex-wrap: wrap; }
+            .tab { min-width: 60px; padding: 6px 8px; font-size: 11px; }
+            .nav-btn { width: 28px; height: 28px; font-size: 14px; }
         }
-        .phonk-btn:hover { transform: scale(1.15); box-shadow: 0 4px 20px rgba(233,30,99,0.7); }
         .phonk-player {
-            position: fixed; bottom: 0; left: 0; right: 0; z-index: 9998;
-            background: linear-gradient(90deg, #1a1a2e, #16213e, #0f3460);
-            padding: 8px 16px; display: flex; align-items: center; gap: 8px;
-            box-shadow: 0 -2px 16px rgba(0,0,0,0.5);
+            display: inline-flex; align-items: center; gap: 4px;
+            background: linear-gradient(90deg, #1a1a2e, #16213e);
+            padding: 2px 8px; border-radius: 16px;
         }
         .phonk-player button {
-            background: none; border: none; color: #fff; font-size: 18px;
-            cursor: pointer; padding: 4px 8px; border-radius: 4px;
+            background: none; border: none; color: #fff; font-size: 14px;
+            cursor: pointer; padding: 2px 4px; border-radius: 4px;
         }
-        .phonk-player button:hover { background: rgba(255,255,255,0.1); }
-        .phonk-title { color: #aaa; font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .phonk-player button:hover { background: rgba(255,255,255,0.15); }
+        .phonk-title { color: #ccc; font-size: 11px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .phonk-player input[type="range"] {
-            width: 80px; accent-color: #e91e63;
+            width: 50px; accent-color: #e91e63; height: 3px;
         }
     </style>
 </head>
@@ -621,14 +808,25 @@
 
     <div class="titlebar">
         <strong>NEON</strong>
+        <span class="clock" id="clock" title=""></span>
         <div class="titlebar-right">
+            <div id="phonkPlayer" class="phonk-player" style="display:none">
+                <button onclick="phonkPrev()" title="Previous">⏮</button>
+                <button onclick="phonkToggle()" id="phonkPlayBtn" title="Play/Pause">▶</button>
+                <button onclick="phonkNext()" title="Next">⏭</button>
+                <span id="phonkTitle" class="phonk-title">Edit Music</span>
+                <input type="range" id="phonkVolume" min="0" max="100" value="50" oninput="phonkSetVol(this.value)" title="Volume">
+                <button onclick="phonkClose()" title="Close">×</button>
+            </div>
+            <button class="auth-btn" onclick="phonkOpen()" style="background:linear-gradient(135deg,#e91e63,#9c27b0);color:#fff">🎵 Edit</button>
+            <button class="auth-btn" onclick="toggleNotes()" title="Quick Notes">📝</button>
             <span id="authArea"></span>
             <button class="customize-btn" onclick="togglePanel()">⚙ Customize</button>
         </div>
     </div>
 
     <div class="tabs-bar" id="tabsBar">
-        <button class="new-tab-btn" onclick="createTab()" title="New Tab (Ctrl+T)">+</button>
+        <button class="new-tab-btn" onclick="createTab()" title="New Tab (Ctrl+T)">+<span class="tab-count" id="tabCount">1</span></button>
     </div>
 
     <div class="bookmarks" id="bookmarks"></div>
@@ -640,27 +838,57 @@
         <button class="nav-btn" onclick="goHome()" title="Home">⌂</button>
 
         <div class="search-container">
-            <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter') go()">
+            <span id="securityIcon" style="position:absolute;left:12px;z-index:2;font-size:12px;color:#4caf50;display:none">🔒</span>
+            <input type="text" id="address" placeholder="Search or type a URL" onkeypress="if(event.key==='Enter'){go();hideSuggestions()}" oninput="showSuggestions()" onfocus="showSuggestions()">
             <button class="clear-btn" onclick="clearAddress()" title="Clear">×</button>
+            <div class="suggestions" id="suggestions"></div>
         </div>
 
         <button class="star-btn" onclick="starCurrent()" title="Bookmark this page">★</button>
+
+        <div class="zoom-controls">
+            <button onclick="zoomOut()" title="Zoom Out">−</button>
+            <span id="zoomLevel">100%</span>
+            <button onclick="zoomIn()" title="Zoom In">+</button>
+        </div>
         <button class="go-btn" onclick="go()">Go</button>
+        <button class="nav-btn" onclick="toggleHistory()" title="History" style="font-size:14px">📜</button>
+        <button class="nav-btn" onclick="toggleFullscreen()" title="Fullscreen (F11)" style="font-size:14px">⛶</button>
         <button class="real-tab-btn" onclick="openRealTab()" title="Open in a real browser tab">🔗 New Tab</button>
     </div>
 
     <div class="main" id="main">
         <div class="loading-bar" id="loadingBar"></div>
+        <div class="find-bar" id="findBar">
+            <input type="text" id="findInput" placeholder="Find on page..." oninput="findOnPage()">
+            <span id="findCount"></span>
+            <button onclick="closeFindBar()">×</button>
+        </div>
         <div id="home" class="home">
             <h1>NEON</h1>
-            <p>↑ Your bookmarks are above</p>
+            <p style="color:#666;font-size:12px" id="homeGreeting"></p>
             <input type="text" id="bigsearch" placeholder="Search the web or type a URL..." onkeypress="if(event.key==='Enter') quickGo()">
             <div class="home-shortcuts" id="homeShortcuts"></div>
+            <div id="recentlyVisited" style="margin-top:16px;width:90%;max-width:560px"></div>
+            <p style="color:#555;font-size:11px;margin-top:12px">Ctrl+T New Tab &nbsp;|&nbsp; Ctrl+Shift+N Incognito &nbsp;|&nbsp; Ctrl+H History &nbsp;|&nbsp; Ctrl+F Find</p>
+        </div>
+        <div class="page-info" id="pageInfo">
+            <span id="pageInfoUrl"></span>
+            <span id="pageInfoTime"></span>
         </div>
     </div>
 
     <div class="panel" id="panel">
         <h4>Customize NEON</h4>
+        <label>Theme Presets</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button onclick="applyTheme('dark')" style="width:auto;padding:4px 10px;font-size:11px;background:#1a1a1a;color:#ccc;border:1px solid #444;margin:0">🌙 Dark</button>
+            <button onclick="applyTheme('midnight')" style="width:auto;padding:4px 10px;font-size:11px;background:#0a0a2e;color:#7b68ee;border:1px solid #333;margin:0">🌌 Midnight</button>
+            <button onclick="applyTheme('ocean')" style="width:auto;padding:4px 10px;font-size:11px;background:#0a2a3a;color:#00d4ff;border:1px solid #0a4a5a;margin:0">🌊 Ocean</button>
+            <button onclick="applyTheme('sunset')" style="width:auto;padding:4px 10px;font-size:11px;background:#2a1a0a;color:#ff6b35;border:1px solid #4a2a0a;margin:0">🌅 Sunset</button>
+            <button onclick="applyTheme('forest')" style="width:auto;padding:4px 10px;font-size:11px;background:#0a2a0a;color:#4caf50;border:1px solid #1a3a1a;margin:0">🌲 Forest</button>
+            <button onclick="applyTheme('rose')" style="width:auto;padding:4px 10px;font-size:11px;background:#2a0a1a;color:#ff69b4;border:1px solid #4a1a2a;margin:0">🌸 Rose</button>
+        </div>
         <label>Title Bar Color</label>
         <input type="color" id="titlebarColor" value="#1a1a1a" oninput="updateColors()">
         <label>Toolbar Color</label>
@@ -677,63 +905,66 @@
     </div>
 
     <div class="tab-context-menu" id="tabCtxMenu"></div>
+    <div class="bm-context-menu" id="bmCtxMenu"></div>
+    <div class="history-panel" id="historyPanel"></div>
 
     <div class="modal-overlay" id="authModal">
         <div class="modal" id="authModalContent"></div>
     </div>
 
+    <div class="notes-panel" id="notesPanel">
+        <div class="notes-panel-header">
+            <span>📝 Quick Notes</span>
+            <button onclick="toggleNotes()">×</button>
+        </div>
+        <textarea id="notesText" placeholder="Type your notes here..." oninput="saveNotes()"></textarea>
+    </div>
+
+    <div class="shortcuts-overlay" id="shortcutsOverlay" onclick="if(event.target===this)this.classList.remove('show')">
+        <div class="shortcuts-content">
+            <h3>⌨ Keyboard Shortcuts</h3>
+            <div class="shortcut-row"><span>New Tab</span><kbd>Ctrl+T</kbd></div>
+            <div class="shortcut-row"><span>Close Tab</span><kbd>Ctrl+W</kbd></div>
+            <div class="shortcut-row"><span>New Incognito Tab</span><kbd>Ctrl+Shift+N</kbd></div>
+            <div class="shortcut-row"><span>Focus Address Bar</span><kbd>Ctrl+L</kbd></div>
+            <div class="shortcut-row"><span>Clear Address Bar</span><kbd>Ctrl+K</kbd></div>
+            <div class="shortcut-row"><span>Find on Page</span><kbd>Ctrl+F</kbd></div>
+            <div class="shortcut-row"><span>History</span><kbd>Ctrl+H</kbd></div>
+            <div class="shortcut-row"><span>Zoom In</span><kbd>Ctrl+=</kbd></div>
+            <div class="shortcut-row"><span>Zoom Out</span><kbd>Ctrl+-</kbd></div>
+            <div class="shortcut-row"><span>Reset Zoom</span><kbd>Ctrl+0</kbd></div>
+            <div class="shortcut-row"><span>Refresh</span><kbd>F5</kbd></div>
+            <div class="shortcut-row"><span>Back</span><kbd>Alt+←</kbd></div>
+            <div class="shortcut-row"><span>Forward</span><kbd>Alt+→</kbd></div>
+            <div class="shortcut-row"><span>Home</span><kbd>Alt+Home</kbd></div>
+            <div class="shortcut-row"><span>Switch to Tab 1-9</span><kbd>Ctrl+1-9</kbd></div>
+            <div class="shortcut-row"><span>Reopen Closed Tab</span><kbd>Ctrl+Shift+T</kbd></div>
+            <div class="shortcut-row"><span>Show Shortcuts</span><kbd>Ctrl+/</kbd></div>
+            <div class="shortcut-row"><span>Gmail</span><kbd>T+E</kbd></div>
+            <p style="color:#666;font-size:11px;text-align:center;margin-top:12px">Click outside to close</p>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
-    <!-- Phonk Music Player -->
-    <div id="phonkPlayer" class="phonk-player" style="display:none">
-        <button onclick="phonkPrev()" title="Previous">⏮</button>
-        <button onclick="phonkToggle()" id="phonkPlayBtn" title="Play/Pause">▶</button>
-        <button onclick="phonkNext()" title="Next">⏭</button>
-        <span id="phonkTitle" class="phonk-title">Phonk</span>
-        <input type="range" id="phonkVolume" min="0" max="100" value="50" oninput="phonkSetVol(this.value)" title="Volume">
-        <button onclick="phonkClose()" title="Close">×</button>
-    </div>
-    <button id="phonkBtn" class="phonk-btn" onclick="phonkOpen()" title="Phonk Music">🎵</button>
+    <!-- Edit music player is now inline in the titlebar -->
 
     <script>
         const IS_BACKEND = location.hostname.includes("tunnel") || location.port === "8001";
-        const API_URL = IS_BACKEND ? "" : "https://50536b280dca-tunnel-iuznimg9.devinapps.com";
-        const TUNNEL_USER = "user";
-        const TUNNEL_PASS = "381726b2f384fffdd3f0af715f6688e9";
+        const API_URL = IS_BACKEND ? "" : "https://neon-auth-nocnywkq.fly.dev";
         function apiFetch(path, opts = {}) {
             return new Promise((resolve, reject) => {
                 const xhr = new XMLHttpRequest();
                 const method = opts.method || "GET";
                 let url, sendBody = null;
 
-                if (IS_BACKEND) {
-                    url = path;
-                    xhr.open(method, url, true);
-                    if (opts.headers) {
-                        for (const [k, v] of Object.entries(opts.headers)) xhr.setRequestHeader(k, v);
-                    }
-                    sendBody = opts.body || null;
-                } else {
-                    // Cross-origin: avoid CORS preflight
-                    let p = path;
-                    if (opts.headers && opts.headers["X-Auth-Token"]) {
-                        const sep = p.includes("?") ? "&" : "?";
-                        p += sep + "_token=" + encodeURIComponent(opts.headers["X-Auth-Token"]);
-                    }
-                    url = API_URL + p;
-                    xhr.open(method, url, true, TUNNEL_USER, TUNNEL_PASS);
-                    xhr.withCredentials = true;
-                    if (opts.body) {
-                        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-                        try {
-                            const data = JSON.parse(opts.body);
-                            const params = new URLSearchParams();
-                            for (const [k, v] of Object.entries(data)) {
-                                params.append(k, typeof v === "object" ? JSON.stringify(v) : v);
-                            }
-                            sendBody = params.toString();
-                        } catch (e) { sendBody = opts.body; }
-                    }
+                url = API_URL + path;
+                xhr.open(method, url, true);
+                if (opts.headers) {
+                    for (const [k, v] of Object.entries(opts.headers)) xhr.setRequestHeader(k, v);
+                }
+                if (opts.body) {
+                    sendBody = opts.body;
                 }
 
                 xhr.onload = function() {
@@ -765,7 +996,27 @@
             iframe.id = "frame-" + id;
             iframe.style.display = "none";
             iframe.sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox";
-            iframe.addEventListener("load", () => { loadingBar.style.display = "none"; });
+            iframe.addEventListener("load", () => {
+                finishLoading();
+                const t = tabs.find(x => x.iframe === iframe);
+                if (t) {
+                    try {
+                        const iframeHref = iframe.contentWindow.location.href;
+                        if (iframeHref && iframeHref !== "about:blank") {
+                            t._currentUrl = iframeHref;
+                            const orig = extractProxyUrl(iframeHref);
+                            if (orig) {
+                                t._originalUrl = orig;
+                                const hostname = orig.replace(/^https?:\/\//, '').split('/')[0];
+                                addressBar.value = orig;
+                                t.title = hostname;
+                                t.icon = 'https://www.google.com/s2/favicons?domain=' + hostname + '&sz=32';
+                                renderTabs();
+                            }
+                        }
+                    } catch (e) {}
+                }
+            });
             mainArea.appendChild(iframe);
 
             const tab = {
@@ -774,7 +1025,8 @@
                 url: url || "",
                 navHistory: [],
                 pos: -1,
-                iframe
+                iframe,
+                _currentUrl: null
             };
             tabs.push(tab);
             switchTab(id);
@@ -799,14 +1051,21 @@
                 tab.iframe.style.display = "block";
                 home.style.display = "none";
                 addressBar.value = tab.navHistory[tab.pos];
+                document.title = tab.title + " — NEON";
+                updateSecurityIcon(tab.navHistory[tab.pos]);
             } else {
                 home.style.display = "flex";
                 addressBar.value = "";
                 document.getElementById("bigsearch").value = "";
+                document.title = "NEON";
+                updateSecurityIcon('');
             }
+            currentZoom = 100;
+            applyZoom();
             renderTabs();
         }
 
+        let recentlyClosed = [];
         function closeTab(id, e) {
             if (e) e.stopPropagation();
             if (tabs.length <= 1) {
@@ -815,6 +1074,10 @@
             }
             const idx = tabs.findIndex(t => t.id === id);
             const tab = tabs[idx];
+            if (tab.pos >= 0 && tab.navHistory[tab.pos]) {
+                recentlyClosed.unshift({ url: tab.navHistory[tab.pos], title: tab.title });
+                if (recentlyClosed.length > 10) recentlyClosed.pop();
+            }
             tab.iframe.remove();
             tabs.splice(idx, 1);
 
@@ -824,17 +1087,43 @@
             }
             renderTabs();
         }
+        function reopenClosedTab() {
+            if (recentlyClosed.length === 0) { showToast('No recently closed tabs'); return; }
+            const item = recentlyClosed.shift();
+            createTab(item.url);
+            showToast('Reopened: ' + item.title);
+        }
 
         function getActiveTab() {
             return tabs.find(t => t.id === activeTabId);
         }
 
-        let useProxy = localStorage.getItem('neon_proxy') === 'true';
+        let useProxy = localStorage.getItem('neon_proxy') !== 'false';
 
+        const PROXY_BASE = "https://neon-auth-nocnywkq.fly.dev";
         function proxyUrl(url) {
             if (!useProxy) return url;
-            if (url.includes('api.allorigins.win')) return url;
-            return "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+            if (url.includes(PROXY_BASE + '/proxy')) return url;
+            return PROXY_BASE + "/proxy?url=" + encodeURIComponent(url);
+        }
+        function extractProxyUrl(proxyHref) {
+            if (!proxyHref) return null;
+            try {
+                const u = new URL(proxyHref);
+                if (u.pathname === '/proxy' && u.searchParams.has('url')) return u.searchParams.get('url');
+            } catch(e) {}
+            return null;
+        }
+
+        function updateSecurityIcon(url) {
+            const icon = document.getElementById('securityIcon');
+            if (url && url.startsWith('https://')) {
+                icon.style.display = 'inline';
+                addressBar.style.paddingLeft = '30px';
+            } else {
+                icon.style.display = 'none';
+                addressBar.style.paddingLeft = '16px';
+            }
         }
 
         function navigateInTab(tab, url) {
@@ -847,6 +1136,7 @@
             const hostname = url.replace(/^https?:\/\//, '').split('/')[0] || "New Tab";
             tab.title = hostname;
             tab.icon = "https://www.google.com/s2/favicons?domain=" + hostname + "&sz=32";
+            if (!tab.incognito) addToHistory(url, hostname);
 
             home.style.display = "none";
             tab.iframe.style.display = "block";
@@ -864,12 +1154,21 @@
             const addBtn = bar.querySelector(".new-tab-btn");
             bar.querySelectorAll(".tab").forEach(el => el.remove());
 
+            document.getElementById('tabCount').textContent = tabs.length;
             tabs.forEach((tab, idx) => {
                 const div = document.createElement("div");
-                div.className = "tab" + (tab.id === activeTabId ? " active" : "");
+                div.className = "tab" + (tab.id === activeTabId ? " active" : "") + (tab.pinned ? " pinned" : "") + (tab.incognito ? " incognito" : "");
+                if (tab.groupColor) div.style.borderBottomColor = tab.groupColor;
                 div.draggable = true;
                 div.dataset.tabIdx = idx;
                 div.onclick = () => switchTab(tab.id);
+
+                if (tab.groupColor) {
+                    const dot = document.createElement('div');
+                    dot.className = 'tab-group-dot';
+                    dot.style.background = tab.groupColor;
+                    div.appendChild(dot);
+                }
 
                 div.addEventListener("dragstart", (e) => {
                     dragTabId = tab.id;
@@ -914,6 +1213,16 @@
                 const title = document.createElement("span");
                 title.className = "tab-title";
                 title.textContent = tab.pos >= 0 ? tab.title : "New Tab";
+                title.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    const input = document.createElement('input');
+                    input.type = 'text'; input.value = title.textContent;
+                    input.style.cssText = 'width:80px;background:#111;border:1px solid var(--accent);color:#fff;font-size:11px;padding:1px 4px;border-radius:3px;outline:none';
+                    input.onblur = () => { tab.title = input.value || 'New Tab'; renderTabs(); };
+                    input.onkeypress = (ev) => { if(ev.key==='Enter') input.blur(); };
+                    title.replaceWith(input);
+                    input.focus(); input.select();
+                });
                 div.appendChild(title);
 
                 div.addEventListener("contextmenu", (e) => {
@@ -934,12 +1243,38 @@
         function showTabContextMenu(e, tabId) {
             const menu = document.getElementById("tabCtxMenu");
             menu.innerHTML = '';
+            const t = tabs.find(t2 => t2.id === tabId);
+            const groupColors = [
+                { name: 'None', color: null },
+                { name: '🔴 Red', color: '#ef5350' },
+                { name: '🟠 Orange', color: '#ff9800' },
+                { name: '🟡 Yellow', color: '#ffeb3b' },
+                { name: '🟢 Green', color: '#4caf50' },
+                { name: '🔵 Blue', color: '#2196f3' },
+                { name: '🟣 Purple', color: '#9c27b0' },
+                { name: '🩷 Pink', color: '#e91e63' },
+            ];
             const items = [
-                { label: 'Duplicate Tab', action: () => { const t = tabs.find(t2 => t2.id === tabId); if (t && t.pos >= 0) createTab(t.navHistory[t.pos]); }},
+                { label: (t && t.pinned) ? '📌 Unpin Tab' : '📌 Pin Tab', action: () => pinTab(tabId) },
+                { label: 'Duplicate Tab', action: () => { if (t && t.pos >= 0) createTab(t.navHistory[t.pos]); }},
+                { label: '🕶 New Incognito Tab', action: () => createIncognitoTab() },
+                { label: 'divider' },
+                ...groupColors.map(gc => ({
+                    label: gc.color ? gc.name : '⊘ No Group',
+                    action: () => { if (t) { t.groupColor = gc.color; renderTabs(); } }
+                })),
+                { label: 'divider' },
                 { label: 'Close Tab', action: () => closeTab(tabId) },
-                { label: 'Close Other Tabs', action: () => { tabs.filter(t => t.id !== tabId).forEach(t => closeTab(t.id)); }},
+                { label: 'Close Other Tabs', action: () => { tabs.filter(t2 => t2.id !== tabId).forEach(t2 => closeTab(t2.id)); }},
+                { label: '↩ Reopen Closed Tab', action: () => reopenClosedTab() },
             ];
             items.forEach(item => {
+                if (item.label === 'divider') {
+                    const div = document.createElement('div');
+                    div.className = 'divider';
+                    menu.appendChild(div);
+                    return;
+                }
                 const btn = document.createElement('button');
                 btn.textContent = item.label;
                 btn.onclick = () => { item.action(); menu.classList.remove('show'); };
@@ -976,7 +1311,10 @@
                 url: t.url,
                 navHistory: t.navHistory,
                 pos: t.pos,
-                icon: t.icon
+                icon: t.icon,
+                pinned: t.pinned || false,
+                incognito: t.incognito || false,
+                groupColor: t.groupColor || null
             }));
             localStorage.setItem('neon_tabs', JSON.stringify(data));
             const act = getActiveTab();
@@ -999,12 +1337,39 @@
             };
         }
 
+        let dragBmIdx = null;
         function renderBookmarks() {
             const container = document.getElementById("bookmarks");
             container.innerHTML = "";
+            // Ensure default bookmark is always first
+            if (bookmarks.length === 0 || bookmarks[0].url !== defaultBookmark.url) {
+                bookmarks = [defaultBookmark, ...bookmarks.filter(b => b.url !== defaultBookmark.url)];
+            }
             bookmarks.forEach((bm, i) => {
+                const isDefault = (bm.url === defaultBookmark.url);
                 const div = document.createElement("div");
                 div.className = "bookmark";
+                if (bm.color) div.style.borderBottom = '2px solid ' + bm.color;
+
+                // Only non-default bookmarks are draggable
+                if (!isDefault) {
+                    div.draggable = true;
+                    div.dataset.bmIdx = i;
+                    div.addEventListener('dragstart', () => { dragBmIdx = i; div.classList.add('dragging-bm'); });
+                    div.addEventListener('dragend', () => { dragBmIdx = null; div.classList.remove('dragging-bm'); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); });
+                    div.addEventListener('dragover', (e) => { e.preventDefault(); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); if (dragBmIdx !== i) div.classList.add('drag-over-bm'); });
+                    div.addEventListener('dragleave', () => div.classList.remove('drag-over-bm'));
+                    div.addEventListener('drop', (e) => {
+                        e.preventDefault(); div.classList.remove('drag-over-bm');
+                        if (dragBmIdx === null || dragBmIdx === i || dragBmIdx === 0) return;
+                        const [moved] = bookmarks.splice(dragBmIdx, 1);
+                        const targetIdx = Math.max(1, i);
+                        bookmarks.splice(targetIdx, 0, moved);
+                        localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                        renderBookmarks();
+                        syncToCloud();
+                    });
+                }
 
                 const img = document.createElement("img");
                 img.src = bm.icon;
@@ -1013,11 +1378,39 @@
 
                 const text = document.createElement("span");
                 text.textContent = bm.name;
+
+                // Only non-default bookmarks can be renamed by double-click
+                if (!isDefault) {
+                    text.style.cursor = 'pointer';
+                    text.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        const input = document.createElement('input');
+                        input.type = 'text'; input.value = bm.name;
+                        input.style.cssText = 'width:80px;background:#111;border:1px solid var(--accent);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;outline:none';
+                        input.onblur = () => {
+                            bm.name = input.value || bm.name;
+                            localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                            renderBookmarks();
+                            syncToCloud();
+                        };
+                        input.onkeypress = (ev) => { if(ev.key==='Enter') input.blur(); };
+                        text.replaceWith(input);
+                        input.focus(); input.select();
+                    });
+                }
+
                 div.appendChild(img);
                 div.appendChild(text);
                 div.onclick = () => visitBookmark(bm.url);
 
-                if (bm.url !== defaultBookmark.url) {
+                // Right-click context menu (only for non-default bookmarks)
+                if (!isDefault) {
+                    div.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        showBmContextMenu(e, i);
+                    });
+
+                    // Delete button (hover)
                     const del = document.createElement("button");
                     del.className = "delete-bm";
                     del.textContent = "×";
@@ -1031,10 +1424,64 @@
             renderHomeShortcuts();
         }
 
+        function showBmContextMenu(e, idx) {
+            const menu = document.getElementById('bmCtxMenu');
+            menu.innerHTML = '';
+            const items = [
+                { label: '✏ Rename', action: () => { renameBmPrompt(idx); }},
+                { label: '🎨 Set Color', action: () => { colorBmPrompt(idx); }},
+                { label: '🗑 Delete', action: () => { deleteBookmark(idx); }},
+            ];
+            items.forEach(item => {
+                const btn = document.createElement('button');
+                btn.textContent = item.label;
+                btn.onclick = () => { item.action(); menu.classList.remove('show'); };
+                menu.appendChild(btn);
+            });
+            menu.style.left = e.clientX + 'px';
+            menu.style.top = e.clientY + 'px';
+            menu.classList.add('show');
+        }
+        document.addEventListener('click', () => {
+            document.getElementById('bmCtxMenu').classList.remove('show');
+        });
+
+        function renameBmPrompt(idx) {
+            const name = prompt('Rename bookmark:', bookmarks[idx].name);
+            if (name) {
+                bookmarks[idx].name = name;
+                localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                renderBookmarks();
+                syncToCloud();
+                showToast('Bookmark renamed');
+            }
+        }
+        function colorBmPrompt(idx) {
+            const colors = ['#ff5555','#ff6b35','#ffcc00','#4caf50','#00aaff','#7b68ee','#ff69b4','#00d4ff'];
+            const color = prompt('Pick a color hex (e.g. #ff5555):\n\nPresets: ' + colors.join(', '), bookmarks[idx].color || '#00aaff');
+            if (color) {
+                bookmarks[idx].color = color;
+                localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                renderBookmarks();
+                syncToCloud();
+                showToast('Bookmark color set');
+            }
+        }
+
         function renderHomeShortcuts() {
             const container = document.getElementById("homeShortcuts");
             container.innerHTML = "";
-            bookmarks.forEach(bm => {
+            const defaultTiles = [
+                { name: "YouTube", url: "https://youtube.com", icon: "https://www.google.com/s2/favicons?domain=youtube.com&sz=32" },
+                { name: "Wikipedia", url: "https://wikipedia.org", icon: "https://www.google.com/s2/favicons?domain=wikipedia.org&sz=32" },
+                { name: "Reddit", url: "https://reddit.com", icon: "https://www.google.com/s2/favicons?domain=reddit.com&sz=32" },
+                { name: "SilverGames", url: "https://silvergames.com", icon: "https://www.google.com/s2/favicons?domain=silvergames.com&sz=32" },
+            ];
+            const allTiles = [...bookmarks.map(b => ({name: b.name, url: b.url, icon: b.icon})), ...defaultTiles];
+            const seen = new Set();
+            allTiles.forEach(bm => {
+                if (seen.has(bm.url)) return;
+                seen.add(bm.url);
                 const tile = document.createElement("div");
                 tile.className = "shortcut-tile";
                 tile.onclick = () => visitBookmark(bm.url);
@@ -1050,6 +1497,10 @@
         }
 
         function deleteBookmark(index) {
+            if (bookmarks[index].url === defaultBookmark.url) {
+                showToast("Can't remove the default bookmark");
+                return;
+            }
             const removed = bookmarks[index];
             bookmarks.splice(index, 1);
             localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
@@ -1148,21 +1599,27 @@
             const btn = document.querySelector('[onclick="refresh()"]');
             if (btn) btn.classList.add('spinning');
             tab.iframe.addEventListener('load', () => { if (btn) btn.classList.remove('spinning'); }, {once: true});
-            // Try to get the iframe's actual current URL (works for same-origin)
-            let currentUrl;
+            // Try direct reload (works when proxy makes iframe same-origin)
             try {
-                currentUrl = tab.iframe.contentWindow.location.href;
-                if (currentUrl === "about:blank") throw 0;
-            } catch (e) {
-                // Cross-origin: fall back to what's in the address bar, then nav history
-                const barVal = addressBar.value.trim();
-                if (barVal && barVal.startsWith("http")) {
-                    currentUrl = barVal;
+                tab.iframe.contentWindow.location.reload();
+                return;
+            } catch (e) {}
+            // Fallback: use tracked proxy URL from in-iframe navigation
+            if (tab._currentUrl) {
+                tab.iframe.src = tab._currentUrl;
+            } else {
+                const curSrc = tab.iframe.src;
+                if (curSrc && curSrc !== "about:blank") {
+                    tab.iframe.src = curSrc;
                 } else {
-                    currentUrl = (tab.pos >= 0 && tab.pos < tab.navHistory.length) ? tab.navHistory[tab.pos] : tab.iframe.src;
+                    const barVal = addressBar.value.trim();
+                    if (barVal && barVal.startsWith("http")) {
+                        tab.iframe.src = proxyUrl(barVal);
+                    } else if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
+                        tab.iframe.src = proxyUrl(tab.navHistory[tab.pos]);
+                    }
                 }
             }
-            tab.iframe.src = proxyUrl(currentUrl);
         }
 
         function goHome() {
@@ -1181,8 +1638,27 @@
         }
 
         // ==================== LOADING ====================
+        let loadingTimer = null;
+        let loadingProgress = 0;
         function showLoading() {
             loadingBar.style.display = "block";
+            loadingProgress = 0;
+            loadingBar.style.width = '0%';
+            pageLoadStart = Date.now();
+            clearInterval(loadingTimer);
+            loadingTimer = setInterval(() => {
+                loadingProgress += (100 - loadingProgress) * 0.1;
+                if (loadingProgress > 90) loadingProgress = 90;
+                loadingBar.style.width = loadingProgress + '%';
+            }, 200);
+        }
+        function finishLoading() {
+            clearInterval(loadingTimer);
+            loadingBar.style.width = '100%';
+            setTimeout(() => {
+                loadingBar.style.display = 'none';
+                loadingBar.style.width = '0%';
+            }, 300);
         }
 
         // ==================== OPEN IN REAL TAB ====================
@@ -1227,11 +1703,29 @@
             if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); forward(); }
             if (e.altKey && e.key === "Home") { e.preventDefault(); goHome(); }
             if (e.key === "F5") { e.preventDefault(); refresh(); }
+            if (e.key === "F11") { e.preventDefault(); toggleFullscreen(); }
             if (e.key === "Escape" && panel.style.display === "block") { panel.style.display = "none"; }
             if (e.ctrlKey && e.key === "t") { e.preventDefault(); createTab(); }
             if (e.ctrlKey && e.key === "w") { e.preventDefault(); if (activeTabId !== null) closeTab(activeTabId); }
             if (e.ctrlKey && e.key === "l") { e.preventDefault(); addressBar.select(); addressBar.focus(); }
             if (e.ctrlKey && e.key === "k") { e.preventDefault(); addressBar.value = ""; addressBar.focus(); }
+            if (e.ctrlKey && e.key === "=") { e.preventDefault(); zoomIn(); }
+            if (e.ctrlKey && e.key === "-") { e.preventDefault(); zoomOut(); }
+            if (e.ctrlKey && e.key === "0") { e.preventDefault(); currentZoom = 100; applyZoom(); }
+            if (e.ctrlKey && e.shiftKey && e.key === "N") { e.preventDefault(); createIncognitoTab(); }
+            if (e.ctrlKey && e.key === "h") { e.preventDefault(); toggleHistory(); }
+            if (e.ctrlKey && e.key === "f") { e.preventDefault(); toggleFindBar(); }
+            if (e.ctrlKey && e.shiftKey && e.key === "T") { e.preventDefault(); reopenClosedTab(); }
+            if (e.ctrlKey && e.key >= "1" && e.key <= "9") {
+                e.preventDefault();
+                const idx = parseInt(e.key) - 1;
+                if (idx < tabs.length) switchTab(tabs[idx].id);
+            }
+            if (e.ctrlKey && e.key === "/") { e.preventDefault(); document.getElementById('shortcutsOverlay').classList.toggle('show'); }
+            if (e.key === "Escape") {
+                document.getElementById('shortcutsOverlay').classList.remove('show');
+                closeFindBar();
+            }
         });
         document.addEventListener("keyup", (e) => { delete _keysHeld[e.key.toLowerCase()]; });
 
@@ -1281,7 +1775,42 @@
             localStorage.removeItem('neon_titlebar');
             localStorage.removeItem('neon_toolbar');
             localStorage.removeItem('neon_bg');
+            localStorage.removeItem('neon_theme');
             location.reload();
+        }
+
+        const THEMES = {
+            dark: { titlebar: '#1a1a1a', toolbar: '#1a1a1a', accent: '#00aaff', bg: '#0f0f0f' },
+            midnight: { titlebar: '#0a0a2e', toolbar: '#0f0f3a', accent: '#7b68ee', bg: '#050520' },
+            ocean: { titlebar: '#0a2a3a', toolbar: '#0a3040', accent: '#00d4ff', bg: '#051a25' },
+            sunset: { titlebar: '#2a1a0a', toolbar: '#301f0f', accent: '#ff6b35', bg: '#1a0a00' },
+            forest: { titlebar: '#0a2a0a', toolbar: '#0f300f', accent: '#4caf50', bg: '#051a05' },
+            rose: { titlebar: '#2a0a1a', toolbar: '#300f1f', accent: '#ff69b4', bg: '#1a0510' },
+        };
+        function applyTheme(name) {
+            const t = THEMES[name];
+            if (!t) return;
+            document.documentElement.style.setProperty('--titlebar-bg', t.titlebar);
+            document.documentElement.style.setProperty('--toolbar-bg', t.toolbar);
+            document.documentElement.style.setProperty('--accent', t.accent);
+            document.documentElement.style.setProperty('--accent-hover', t.accent + 'cc');
+            document.documentElement.style.setProperty('--bg-dark', t.bg);
+            document.getElementById('titlebarColor').value = t.titlebar;
+            document.getElementById('toolbarColor').value = t.toolbar;
+            localStorage.setItem('neon_titlebar', t.titlebar);
+            localStorage.setItem('neon_toolbar', t.toolbar);
+            localStorage.setItem('neon_theme', name);
+            showToast('Theme: ' + name.charAt(0).toUpperCase() + name.slice(1));
+            syncToCloud();
+        }
+        function loadTheme() {
+            const name = localStorage.getItem('neon_theme');
+            if (name && THEMES[name]) {
+                const t = THEMES[name];
+                document.documentElement.style.setProperty('--accent', t.accent);
+                document.documentElement.style.setProperty('--accent-hover', t.accent + 'cc');
+                document.documentElement.style.setProperty('--bg-dark', t.bg);
+            }
         }
 
         // ==================== AUTH ====================
@@ -1391,8 +1920,14 @@
             const picUrl = currentUser.profile_pic || localStorage.getItem('neon_profile_pic') || '';
             content.innerHTML = `
                 <h3>Profile Picture</h3>
-                <p style="color:#aaa;font-size:12px;margin-bottom:8px">Paste an image URL for your profile picture</p>
-                <input type="url" id="profilePicUrl" placeholder="https://example.com/my-photo.jpg" value="${picUrl}">
+                <p style="color:#aaa;font-size:12px;margin-bottom:8px">Upload a photo or paste an image URL</p>
+                <div style="display:flex;gap:8px;margin-bottom:8px">
+                    <label class="modal-btn" style="flex:1;text-align:center;cursor:pointer;margin:0">
+                        📁 Upload Photo
+                        <input type="file" id="profilePicFile" accept="image/*" style="display:none" onchange="handleProfilePicUpload(event)">
+                    </label>
+                </div>
+                <input type="url" id="profilePicUrl" placeholder="Or paste image URL here..." value="${picUrl}">
                 <div id="authError" class="error-msg"></div>
                 <div id="picPreviewArea" style="text-align:center;margin:10px 0">${picUrl ? '<img src="' + picUrl + '" class="profile-pic-preview" onerror="this.style.display=\'none\'">' : ''}</div>
                 <button class="modal-btn" onclick="saveProfilePic()">Save</button>
@@ -1408,7 +1943,23 @@
                     area.innerHTML = '';
                 }
             });
-            setTimeout(() => input.focus(), 100);
+        }
+
+        function handleProfilePicUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 512 * 1024) {
+                showToast("Image too large — max 512KB");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = ev => {
+                const dataUrl = ev.target.result;
+                document.getElementById('profilePicUrl').value = dataUrl;
+                document.getElementById('picPreviewArea').innerHTML = '<img src="' + dataUrl + '" class="profile-pic-preview">';
+                showToast("Photo loaded! Click Save to apply.");
+            };
+            reader.readAsDataURL(file);
         }
 
         async function saveProfilePic() {
@@ -1563,6 +2114,10 @@
                     document.getElementById("toolbarColor").value = data.toolbar_color;
                     localStorage.setItem('neon_toolbar', data.toolbar_color);
                 }
+                if (data.theme) {
+                    localStorage.setItem('neon_theme', data.theme);
+                    loadTheme();
+                }
             } catch (e) {}
         }
 
@@ -1580,7 +2135,8 @@
                         bookmarks: userBookmarks,
                         titlebar_color: localStorage.getItem('neon_titlebar'),
                         toolbar_color: localStorage.getItem('neon_toolbar'),
-                        profile_pic: localStorage.getItem('neon_profile_pic') || ''
+                        profile_pic: localStorage.getItem('neon_profile_pic') || '',
+                        theme: localStorage.getItem('neon_theme') || ''
                     })
                 });
             } catch (e) {}
@@ -1612,9 +2168,297 @@
             if (tb) { document.documentElement.style.setProperty('--toolbar-bg', tb); document.getElementById("toolbarColor").value = tb; }
             if (bg) mainArea.style.backgroundImage = `url('${bg}')`;
             document.getElementById("proxyToggle").checked = useProxy;
+            loadTheme();
+        }
+
+        // ==================== SEARCH SUGGESTIONS ====================
+        let sugIdx = -1;
+        function showSuggestions() {
+            const q = addressBar.value.trim().toLowerCase();
+            const box = document.getElementById('suggestions');
+            if (!q || q.length < 2) { box.classList.remove('show'); return; }
+            const results = [];
+            browsingHistory.forEach(h => {
+                if (h.url.toLowerCase().includes(q) || (h.title && h.title.toLowerCase().includes(q))) {
+                    if (!results.some(r => r.url === h.url)) results.push({ url: h.url, title: h.title, type: 'History' });
+                }
+            });
+            bookmarks.forEach(b => {
+                if (b.url.toLowerCase().includes(q) || b.name.toLowerCase().includes(q)) {
+                    if (!results.some(r => r.url === b.url)) results.push({ url: b.url, title: b.name, type: 'Bookmark' });
+                }
+            });
+            if (results.length === 0 && !q.includes('.')) {
+                results.push({ url: 'https://www.google.com/search?igu=1&q=' + encodeURIComponent(q), title: 'Search: ' + q, type: 'Google' });
+            }
+            if (results.length === 0) { box.classList.remove('show'); return; }
+            sugIdx = -1;
+            let html = '';
+            results.slice(0, 8).forEach((r, i) => {
+                const hostname = r.url.replace(/^https?:\/\//, '').split('/')[0];
+                html += '<div class="suggestion" data-url="' + r.url.replace(/"/g, '&quot;') + '" onclick="pickSuggestion(this)">';
+                html += '<img src="https://www.google.com/s2/favicons?domain=' + hostname + '&sz=16" onerror="this.style.display=\'none\'">';
+                html += '<span>' + (r.title || hostname) + '</span>';
+                html += '<span class="sug-type">' + r.type + '</span>';
+                html += '</div>';
+            });
+            box.innerHTML = html;
+            box.classList.add('show');
+        }
+        function hideSuggestions() { document.getElementById('suggestions').classList.remove('show'); sugIdx = -1; }
+        function pickSuggestion(el) {
+            addressBar.value = el.dataset.url;
+            hideSuggestions();
+            go();
+        }
+        addressBar.addEventListener('keydown', (e) => {
+            const box = document.getElementById('suggestions');
+            if (!box.classList.contains('show')) return;
+            const items = box.querySelectorAll('.suggestion');
+            if (e.key === 'ArrowDown') { e.preventDefault(); sugIdx = Math.min(sugIdx + 1, items.length - 1); updateSugSelection(items); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); sugIdx = Math.max(sugIdx - 1, -1); updateSugSelection(items); }
+            if (e.key === 'Enter' && sugIdx >= 0) { e.preventDefault(); pickSuggestion(items[sugIdx]); }
+            if (e.key === 'Escape') { hideSuggestions(); }
+        });
+        function updateSugSelection(items) {
+            items.forEach((el, i) => el.classList.toggle('selected', i === sugIdx));
+            if (sugIdx >= 0) addressBar.value = items[sugIdx].dataset.url;
+        }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.search-container')) hideSuggestions();
+        });
+
+        // ==================== FIND ON PAGE ====================
+        function toggleFindBar() {
+            const bar = document.getElementById('findBar');
+            if (bar.classList.contains('show')) { closeFindBar(); return; }
+            bar.classList.add('show');
+            document.getElementById('findInput').focus();
+        }
+        function closeFindBar() {
+            document.getElementById('findBar').classList.remove('show');
+            document.getElementById('findInput').value = '';
+            document.getElementById('findCount').textContent = '';
+        }
+        function findOnPage() {
+            const query = document.getElementById('findInput').value;
+            const tab = getActiveTab();
+            if (!tab || !query) { document.getElementById('findCount').textContent = ''; return; }
+            try {
+                tab.iframe.contentWindow.find(query, false, false, true);
+            } catch(e) {}
+        }
+
+        // ==================== QUICK NOTES ====================
+        function toggleNotes() {
+            const panel = document.getElementById('notesPanel');
+            panel.classList.toggle('show');
+            if (panel.classList.contains('show')) {
+                document.getElementById('notesText').value = localStorage.getItem('neon_notes') || '';
+            }
+        }
+        function saveNotes() {
+            localStorage.setItem('neon_notes', document.getElementById('notesText').value);
+        }
+
+        // ==================== SHARE PAGE ====================
+        function sharePage() {
+            const tab = getActiveTab();
+            if (!tab || tab.pos < 0) { showToast('Nothing to share'); return; }
+            const url = tab.navHistory[tab.pos];
+            if (navigator.share) {
+                navigator.share({ title: tab.title, url: url }).catch(() => {});
+            } else if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => showToast('URL copied!')).catch(() => showToast('Could not copy'));
+            } else {
+                prompt('Copy this URL:', url);
+            }
+        }
+
+        // ==================== FULLSCREEN ====================
+        function toggleFullscreen() {
+            if (document.fullscreenElement) {
+                document.exitFullscreen();
+            } else {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+        }
+
+        // ==================== CLOCK & GREETING ====================
+        function updateClock() {
+            const now = new Date();
+            const h = now.getHours() % 12 || 12;
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const ap = now.getHours() >= 12 ? 'PM' : 'AM';
+            const el = document.getElementById('clock');
+            el.textContent = h + ':' + m + ' ' + ap;
+            el.title = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        function updateGreeting() {
+            const hr = new Date().getHours();
+            let greet = 'Good evening';
+            if (hr < 12) greet = 'Good morning';
+            else if (hr < 17) greet = 'Good afternoon';
+            const el = document.getElementById('homeGreeting');
+            if (el) el.textContent = greet + ' — what do you want to browse?';
+        }
+        updateClock(); updateGreeting(); renderRecentlyVisited();
+        setInterval(updateClock, 15000);
+
+        function renderRecentlyVisited() {
+            const container = document.getElementById('recentlyVisited');
+            if (!container) return;
+            if (browsingHistory.length === 0) { container.innerHTML = ''; return; }
+            const seen = new Set();
+            const unique = browsingHistory.filter(h => {
+                const host = h.url.replace(/^https?:\/\//, '').split('/')[0];
+                if (seen.has(host)) return false;
+                seen.add(host);
+                return true;
+            }).slice(0, 6);
+            if (unique.length === 0) { container.innerHTML = ''; return; }
+            let html = '<p style="color:#666;font-size:11px;margin-bottom:6px;text-align:left">Recently Visited</p>';
+            html += '<div style="display:flex;flex-wrap:wrap;gap:8px">';
+            unique.forEach(h => {
+                const host = h.url.replace(/^https?:\/\//, '').split('/')[0];
+                html += '<div class="shortcut-tile" onclick="visitBookmark(\'' + h.url.replace(/'/g, "\\'") + '\')" style="min-width:80px">';
+                html += '<img src="https://www.google.com/s2/favicons?domain=' + host + '&sz=32" onerror="this.style.display=\'none\'">';
+                html += '<span>' + (h.title || host) + '</span></div>';
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // ==================== PAGE INFO BAR ====================
+        let pageLoadStart = null;
+        function updatePageInfo() {
+            const tab = getActiveTab();
+            const urlEl = document.getElementById('pageInfoUrl');
+            const timeEl = document.getElementById('pageInfoTime');
+            if (!tab || tab.pos < 0) { urlEl.textContent = ''; timeEl.textContent = ''; return; }
+            urlEl.textContent = tab._originalUrl || tab.navHistory[tab.pos] || '';
+            if (pageLoadStart) {
+                const elapsed = ((Date.now() - pageLoadStart) / 1000).toFixed(1);
+                timeEl.textContent = 'Loaded in ' + elapsed + 's';
+            }
+        }
+        setInterval(updatePageInfo, 2000);
+
+        // ==================== ZOOM ====================
+        let currentZoom = 100;
+        function zoomIn() {
+            if (currentZoom >= 200) return;
+            currentZoom += 10;
+            applyZoom();
+        }
+        function zoomOut() {
+            if (currentZoom <= 30) return;
+            currentZoom -= 10;
+            applyZoom();
+        }
+        function applyZoom() {
+            document.getElementById('zoomLevel').textContent = currentZoom + '%';
+            const tab = getActiveTab();
+            if (tab && tab.iframe) {
+                tab.iframe.style.transform = 'scale(' + (currentZoom / 100) + ')';
+                tab.iframe.style.transformOrigin = 'top left';
+                tab.iframe.style.width = (100 / (currentZoom / 100)) + '%';
+                tab.iframe.style.height = (100 / (currentZoom / 100)) + '%';
+            }
+        }
+
+        // ==================== HISTORY ====================
+        let browsingHistory = JSON.parse(localStorage.getItem('neon_history') || '[]');
+        function addToHistory(url, title) {
+            if (!url || url === 'about:blank') return;
+            browsingHistory.unshift({ url, title: title || url, time: Date.now() });
+            if (browsingHistory.length > 100) browsingHistory = browsingHistory.slice(0, 100);
+            localStorage.setItem('neon_history', JSON.stringify(browsingHistory));
+        }
+        function toggleHistory() {
+            const panel = document.getElementById('historyPanel');
+            if (panel.classList.contains('show')) { panel.classList.remove('show'); return; }
+            renderHistory();
+            panel.classList.add('show');
+        }
+        function renderHistory() {
+            const panel = document.getElementById('historyPanel');
+            let html = '<h4>History <button onclick="clearHistory()">Clear All</button></h4>';
+            if (browsingHistory.length === 0) {
+                html += '<p style="color:#666;font-size:12px">No history yet</p>';
+            } else {
+                browsingHistory.slice(0, 50).forEach(h => {
+                    const hostname = h.url.replace(/^https?:\/\//, '').split('/')[0];
+                    const time = new Date(h.time);
+                    const timeStr = time.getHours() % 12 || 12;
+                    const mins = String(time.getMinutes()).padStart(2, '0');
+                    const ap = time.getHours() >= 12 ? 'PM' : 'AM';
+                    html += '<div class="history-item" onclick="createTab(\'' + h.url.replace(/'/g, "\\'") + '\')">';
+                    html += '<img src="https://www.google.com/s2/favicons?domain=' + hostname + '&sz=16" onerror="this.style.display=\'none\'">';
+                    html += '<span class="hist-url">' + (h.title || hostname) + '</span>';
+                    html += '<span class="hist-time">' + timeStr + ':' + mins + ' ' + ap + '</span>';
+                    html += '</div>';
+                });
+            }
+            panel.innerHTML = html;
+        }
+        function clearHistory() {
+            browsingHistory = [];
+            localStorage.removeItem('neon_history');
+            renderHistory();
+            showToast('History cleared');
+        }
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('historyPanel');
+            if (panel.classList.contains('show') && !panel.contains(e.target) && !e.target.closest('[onclick*="toggleHistory"]')) {
+                panel.classList.remove('show');
+            }
+        });
+
+        // ==================== TAB PINNING ====================
+        function pinTab(tabId) {
+            const tab = tabs.find(t => t.id === tabId);
+            if (tab) {
+                tab.pinned = !tab.pinned;
+                if (tab.pinned) {
+                    const idx = tabs.indexOf(tab);
+                    tabs.splice(idx, 1);
+                    const firstUnpinned = tabs.findIndex(t => !t.pinned);
+                    tabs.splice(firstUnpinned >= 0 ? firstUnpinned : tabs.length, 0, tab);
+                }
+                renderTabs();
+                showToast(tab.pinned ? 'Tab pinned' : 'Tab unpinned');
+            }
+        }
+
+        // ==================== INCOGNITO TAB ====================
+        function createIncognitoTab() {
+            const tab = createTab();
+            tab.incognito = true;
+            renderTabs();
+            showToast('🕶 Incognito tab — no history saved');
         }
 
         // ==================== INIT ====================
+        // Listen for URL updates from proxied iframes via postMessage
+        window.addEventListener("message", (e) => {
+            if (!e.data || e.data.type !== "neon-proxy-url") return;
+            const proxyHref = e.data.href;
+            const orig = extractProxyUrl(proxyHref);
+            const tab = tabs.find(t => t.iframe && t.iframe.contentWindow === e.source);
+            if (tab) {
+                tab._currentUrl = proxyHref;
+                if (orig) {
+                    tab._originalUrl = orig;
+                    const hostname = orig.replace(/^https?:\/\//, '').split('/')[0];
+                    if (tab.id === activeTabId) addressBar.value = orig;
+                    tab.title = hostname;
+                    tab.icon = 'https://www.google.com/s2/favicons?domain=' + hostname + '&sz=32';
+                    renderTabs();
+                }
+            }
+        });
+
         function init() {
             loadSaved();
             renderBookmarks();
@@ -1631,7 +2475,7 @@
                             iframe.id = "frame-" + tabIdCounter;
                             iframe.style.display = "none";
                             iframe.sandbox = "allow-same-origin allow-scripts allow-popups allow-forms allow-popups-to-escape-sandbox";
-                            iframe.addEventListener("load", () => { loadingBar.style.display = "none"; });
+                            iframe.addEventListener("load", () => { finishLoading(); });
                             mainArea.appendChild(iframe);
                             const tab = {
                                 id: tabIdCounter++,
@@ -1640,7 +2484,10 @@
                                 navHistory: t.navHistory || [],
                                 pos: t.pos != null ? t.pos : -1,
                                 iframe,
-                                icon: t.icon || null
+                                icon: t.icon || null,
+                                pinned: t.pinned || false,
+                                incognito: t.incognito || false,
+                                groupColor: t.groupColor || null
                             };
                             tabs.push(tab);
                             if (tab.pos >= 0 && tab.pos < tab.navHistory.length) {
@@ -1671,76 +2518,127 @@
         }
         init();
 
-        // ==================== PHONK MUSIC PLAYER ====================
+        // ==================== EDIT MUSIC PLAYER (YouTube) ====================
         const phonkTracks = [
-            {title: "MURDER IN MY MIND", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"},
-            {title: "DRIFT PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3"},
-            {title: "BRAZILIAN PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"},
-            {title: "KORDHELL - MURDER", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3"},
-            {title: "FUNK OVERDRIVE", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3"},
-            {title: "CLOSE EYES", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"},
-            {title: "METAMORPHOSIS", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3"},
-            {title: "SHADOW PHONK", url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3"},
+            // Electronic & Phonk (High Energy)
+            {title: "Sunroof – Nicky Youre", ytId: "G5xSLbYMr-I"},
+            {title: "Metamorphosis – INTERWORLD", ytId: "uYU3eOjgA6A"},
+            {title: "Rave – Dxrk", ytId: "PTZgxW_3LIQ"},
+            {title: "Close Eyes – DVRST", ytId: "ao4RCon11eY"},
+            {title: "Alone – Marshmello", ytId: "ALZHF5UqnU4"},
+            {title: "Fade – Alan Walker", ytId: "60ItHLz5WEA"},
+            {title: "Nevada – Vicetone", ytId: "AnMhdn0wJ4I"},
+            {title: "Fly – Marshmello", ytId: "oRArmtMA9AI"},
+            // Hip-Hop & Cinematic Beats (Hype/Sports)
+            {title: "Industry Baby – Lil Nas X", ytId: "UTHLKHL_whs"},
+            {title: "Remember the Name – Fort Minor", ytId: "VDvr08sCPOc"},
+            {title: "Life Is Good – Future ft. Drake", ytId: "l0U7SxXHkPY"},
+            {title: "Centuries – Fall Out Boy", ytId: "LBr7kECsjcQ"},
+            {title: "Legends Are Made – Sam Tinnesz", ytId: "EKVZrbitbd8"},
+            {title: "Unstoppable – The Score", ytId: "_PBlykN4KIY"},
+            {title: "Ready Set Go – Royal Deluxe", ytId: "5X3p7CBC-Lo"},
+            // Pop & Trend Beats (Smooth/Aesthetic)
+            {title: "Stay – Kid LAROI & Justin Bieber", ytId: "kTJczUoc26U"},
+            {title: "Blinding Lights – The Weeknd", ytId: "4NRXx6U8ABQ"},
+            {title: "Golden Hour – JVKE", ytId: "PEM0Vs8jf1w"},
+            {title: "As It Was – Harry Styles", ytId: "H5v3kku4y6Q"},
+            {title: "Starboy – The Weeknd", ytId: "34Na4j8AVgA"},
+            {title: "Heat Waves – Glass Animals", ytId: "mRD0-GxqHVo"},
+            // No-Copyright Essentials (NCS)
+            {title: "Mortals – Warriyo [NCS]", ytId: "yJg-Y5byMMw"},
+            {title: "Blank – Disfigure [NCS]", ytId: "p7ZsBPK656s"},
+            {title: "My Heart – Different Heaven [NCS]", ytId: "jK2aIUmmdP4"},
+            {title: "Cloud 9 – Itro & Tobu [NCS]", ytId: "FZa2yA7r-T0"},
         ];
         let phonkIdx = Math.floor(Math.random() * phonkTracks.length);
-        let phonkAudio = null;
+        let ytPlayer = null;
+        let ytReady = false;
         let phonkPlaying = false;
+        let phonkHistory = [phonkIdx];
+
+        // Load YouTube IFrame API
+        (function() {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            document.head.appendChild(tag);
+        })();
+
+        function onYouTubeIframeAPIReady() {
+            const container = document.createElement('div');
+            container.id = 'ytPlayerContainer';
+            container.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;overflow:hidden;';
+            document.body.appendChild(container);
+            ytPlayer = new YT.Player('ytPlayerContainer', {
+                height: '1', width: '1',
+                videoId: phonkTracks[phonkIdx].ytId,
+                playerVars: { autoplay: 0, controls: 0, disablekb: 1, fs: 0, modestbranding: 1, rel: 0 },
+                events: {
+                    onReady: function() { ytReady = true; ytPlayer.setVolume(50); },
+                    onStateChange: function(e) {
+                        if (e.data === YT.PlayerState.ENDED) { phonkNext(); }
+                    }
+                }
+            });
+        }
 
         function phonkOpen() {
-            document.getElementById("phonkPlayer").style.display = "flex";
-            document.getElementById("phonkBtn").style.display = "none";
-            if (!phonkAudio) {
-                phonkAudio = new Audio();
-                phonkAudio.volume = 0.5;
-                phonkAudio.addEventListener("ended", phonkNext);
+            document.getElementById("phonkPlayer").style.display = "inline-flex";
+            if (ytReady) {
+                ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
             }
-            phonkLoad();
-            phonkAudio.play().catch(() => {});
-            phonkPlaying = true;
-            document.getElementById("phonkPlayBtn").textContent = "⏸";
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
         }
 
         function phonkClose() {
             document.getElementById("phonkPlayer").style.display = "none";
-            document.getElementById("phonkBtn").style.display = "block";
-            if (phonkAudio) { phonkAudio.pause(); }
+            if (ytReady) ytPlayer.pauseVideo();
             phonkPlaying = false;
             document.getElementById("phonkPlayBtn").textContent = "▶";
         }
 
-        function phonkLoad() {
-            if (!phonkAudio) return;
-            phonkAudio.src = phonkTracks[phonkIdx].url;
-            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
-        }
-
         function phonkToggle() {
-            if (!phonkAudio) return;
+            if (!ytReady) return;
             if (phonkPlaying) {
-                phonkAudio.pause();
+                ytPlayer.pauseVideo();
                 phonkPlaying = false;
                 document.getElementById("phonkPlayBtn").textContent = "▶";
             } else {
-                phonkAudio.play().catch(() => {});
+                ytPlayer.playVideo();
                 phonkPlaying = true;
                 document.getElementById("phonkPlayBtn").textContent = "⏸";
             }
         }
 
         function phonkNext() {
-            phonkIdx = Math.floor(Math.random() * phonkTracks.length);
-            phonkLoad();
-            if (phonkPlaying) phonkAudio.play().catch(() => {});
+            let next;
+            do { next = Math.floor(Math.random() * phonkTracks.length); } while (next === phonkIdx && phonkTracks.length > 1);
+            phonkIdx = next;
+            phonkHistory.push(phonkIdx);
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
+            if (ytReady) {
+                ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
+            }
         }
 
         function phonkPrev() {
-            phonkIdx = (phonkIdx - 1 + phonkTracks.length) % phonkTracks.length;
-            phonkLoad();
-            if (phonkPlaying) phonkAudio.play().catch(() => {});
+            if (phonkHistory.length > 1) {
+                phonkHistory.pop();
+                phonkIdx = phonkHistory[phonkHistory.length - 1];
+            }
+            document.getElementById("phonkTitle").textContent = phonkTracks[phonkIdx].title;
+            if (ytReady) {
+                ytPlayer.loadVideoById(phonkTracks[phonkIdx].ytId);
+                phonkPlaying = true;
+                document.getElementById("phonkPlayBtn").textContent = "⏸";
+            }
         }
 
         function phonkSetVol(v) {
-            if (phonkAudio) phonkAudio.volume = v / 100;
+            if (ytReady) ytPlayer.setVolume(parseInt(v));
         }
     </script>
 </body>
