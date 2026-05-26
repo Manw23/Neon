@@ -845,7 +845,7 @@
         </div>
 
         <button class="star-btn" onclick="starCurrent()" title="Bookmark this page">★</button>
-        <button class="nav-btn" onclick="sharePage()" title="Share page" style="font-size:13px">📤</button>
+
         <div class="zoom-controls">
             <button onclick="zoomOut()" title="Zoom Out">−</button>
             <span id="zoomLevel">100%</span>
@@ -1341,27 +1341,35 @@
         function renderBookmarks() {
             const container = document.getElementById("bookmarks");
             container.innerHTML = "";
+            // Ensure default bookmark is always first
+            if (bookmarks.length === 0 || bookmarks[0].url !== defaultBookmark.url) {
+                bookmarks = [defaultBookmark, ...bookmarks.filter(b => b.url !== defaultBookmark.url)];
+            }
             bookmarks.forEach((bm, i) => {
+                const isDefault = (bm.url === defaultBookmark.url);
                 const div = document.createElement("div");
                 div.className = "bookmark";
                 if (bm.color) div.style.borderBottom = '2px solid ' + bm.color;
-                div.draggable = true;
-                div.dataset.bmIdx = i;
 
-                // Drag to reorder
-                div.addEventListener('dragstart', () => { dragBmIdx = i; div.classList.add('dragging-bm'); });
-                div.addEventListener('dragend', () => { dragBmIdx = null; div.classList.remove('dragging-bm'); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); });
-                div.addEventListener('dragover', (e) => { e.preventDefault(); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); if (dragBmIdx !== i) div.classList.add('drag-over-bm'); });
-                div.addEventListener('dragleave', () => div.classList.remove('drag-over-bm'));
-                div.addEventListener('drop', (e) => {
-                    e.preventDefault(); div.classList.remove('drag-over-bm');
-                    if (dragBmIdx === null || dragBmIdx === i) return;
-                    const [moved] = bookmarks.splice(dragBmIdx, 1);
-                    bookmarks.splice(i, 0, moved);
-                    localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
-                    renderBookmarks();
-                    syncToCloud();
-                });
+                // Only non-default bookmarks are draggable
+                if (!isDefault) {
+                    div.draggable = true;
+                    div.dataset.bmIdx = i;
+                    div.addEventListener('dragstart', () => { dragBmIdx = i; div.classList.add('dragging-bm'); });
+                    div.addEventListener('dragend', () => { dragBmIdx = null; div.classList.remove('dragging-bm'); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); });
+                    div.addEventListener('dragover', (e) => { e.preventDefault(); container.querySelectorAll('.bookmark').forEach(b => b.classList.remove('drag-over-bm')); if (dragBmIdx !== i) div.classList.add('drag-over-bm'); });
+                    div.addEventListener('dragleave', () => div.classList.remove('drag-over-bm'));
+                    div.addEventListener('drop', (e) => {
+                        e.preventDefault(); div.classList.remove('drag-over-bm');
+                        if (dragBmIdx === null || dragBmIdx === i || dragBmIdx === 0) return;
+                        const [moved] = bookmarks.splice(dragBmIdx, 1);
+                        const targetIdx = Math.max(1, i);
+                        bookmarks.splice(targetIdx, 0, moved);
+                        localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                        renderBookmarks();
+                        syncToCloud();
+                    });
+                }
 
                 const img = document.createElement("img");
                 img.src = bm.icon;
@@ -1370,42 +1378,46 @@
 
                 const text = document.createElement("span");
                 text.textContent = bm.name;
-                text.style.cursor = 'pointer';
 
-                // Double-click to rename
-                text.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    const input = document.createElement('input');
-                    input.type = 'text'; input.value = bm.name;
-                    input.style.cssText = 'width:80px;background:#111;border:1px solid var(--accent);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;outline:none';
-                    input.onblur = () => {
-                        bm.name = input.value || bm.name;
-                        localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
-                        renderBookmarks();
-                        syncToCloud();
-                    };
-                    input.onkeypress = (ev) => { if(ev.key==='Enter') input.blur(); };
-                    text.replaceWith(input);
-                    input.focus(); input.select();
-                });
+                // Only non-default bookmarks can be renamed by double-click
+                if (!isDefault) {
+                    text.style.cursor = 'pointer';
+                    text.addEventListener('dblclick', (e) => {
+                        e.stopPropagation();
+                        const input = document.createElement('input');
+                        input.type = 'text'; input.value = bm.name;
+                        input.style.cssText = 'width:80px;background:#111;border:1px solid var(--accent);color:#fff;font-size:12px;padding:2px 6px;border-radius:4px;outline:none';
+                        input.onblur = () => {
+                            bm.name = input.value || bm.name;
+                            localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
+                            renderBookmarks();
+                            syncToCloud();
+                        };
+                        input.onkeypress = (ev) => { if(ev.key==='Enter') input.blur(); };
+                        text.replaceWith(input);
+                        input.focus(); input.select();
+                    });
+                }
 
                 div.appendChild(img);
                 div.appendChild(text);
                 div.onclick = () => visitBookmark(bm.url);
 
-                // Right-click context menu
-                div.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    showBmContextMenu(e, i);
-                });
+                // Right-click context menu (only for non-default bookmarks)
+                if (!isDefault) {
+                    div.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        showBmContextMenu(e, i);
+                    });
 
-                // Delete button (hover)
-                const del = document.createElement("button");
-                del.className = "delete-bm";
-                del.textContent = "×";
-                del.title = "Remove bookmark";
-                del.onclick = (e) => { e.stopPropagation(); deleteBookmark(i); };
-                div.appendChild(del);
+                    // Delete button (hover)
+                    const del = document.createElement("button");
+                    del.className = "delete-bm";
+                    del.textContent = "×";
+                    del.title = "Remove bookmark";
+                    del.onclick = (e) => { e.stopPropagation(); deleteBookmark(i); };
+                    div.appendChild(del);
+                }
 
                 container.appendChild(div);
             });
@@ -1485,6 +1497,10 @@
         }
 
         function deleteBookmark(index) {
+            if (bookmarks[index].url === defaultBookmark.url) {
+                showToast("Can't remove the default bookmark");
+                return;
+            }
             const removed = bookmarks[index];
             bookmarks.splice(index, 1);
             localStorage.setItem("neon_bookmarks", JSON.stringify(bookmarks));
